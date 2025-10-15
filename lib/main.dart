@@ -20,7 +20,6 @@ class MyApp extends StatelessWidget {
         fontFamily: 'Roboto',
       ),
       debugShowCheckedModeBanner: false,
-      // Set login screen sebagai halaman awal
       initialRoute: '/',
       routes: {
         '/': (context) => const WelcomeScreen(),
