@@ -5,7 +5,6 @@ class HomeScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Ambil data dari arguments yang dikirim saat login
     final arguments = ModalRoute.of(context)?.settings.arguments as Map<String, dynamic>?;
     final String nim = arguments?['nim'] ?? 'Unknown';
     final String nama = arguments?['nama'] ?? 'User';
@@ -32,7 +31,7 @@ class HomeScreen extends StatelessWidget {
                     ),
                     TextButton(
                       onPressed: () {
-                        Navigator.pop(context); // Close dialog
+                        Navigator.pop(context); 
                         Navigator.pushReplacementNamed(context, '/');
                       },
                       child: const Text('Ya, Keluar'),

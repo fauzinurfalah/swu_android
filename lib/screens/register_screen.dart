@@ -91,7 +91,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
         child: SafeArea(
           child: Column(
             children: [
-              // Header dengan logo
               Container(
                 padding: const EdgeInsets.symmetric(vertical: 30),
                 child: Column(

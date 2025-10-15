@@ -17,7 +17,7 @@ class WelcomeScreen extends StatelessWidget {
             // Logo
             Center(
               child: Image.asset(
-                'assets/images/swu.png', // Ganti sesuai path logo kamu
+                'assets/images/swu.png', 
                 width: 130,
                 height: 130,
               ),
@@ -44,7 +44,6 @@ class WelcomeScreen extends StatelessWidget {
 
             const SizedBox(height: 50),
 
-            // Bagian bawah dengan background biru
             Expanded(
               child: Container(
                 width: double.infinity,
@@ -80,16 +79,16 @@ class WelcomeScreen extends StatelessWidget {
                       
                       const Spacer(),
 
-                      // Tombol Masuk (putih)
+                      // Tombol Masuk
                       SizedBox(
-                        width: MediaQuery.of(context).size.width * 0.9, // lebih lebar
+                        width: MediaQuery.of(context).size.width * 0.9,
                         child: ElevatedButton(
                           onPressed: () {
                             Navigator.push(
                               context,
                               MaterialPageRoute(
                                   builder: (context) => const LoginScreen()),
-                            );// nanti diarahkan ke halaman register
+                            );
                           },
                           style: ElevatedButton.styleFrom(
                             backgroundColor: Colors.white,
@@ -111,7 +110,7 @@ class WelcomeScreen extends StatelessWidget {
                       ),
                       const SizedBox(height: 18),
 
-                      // Tombol Login (hitam)
+                      // Tombol Daftar
                       SizedBox(
                         width: MediaQuery.of(context).size.width * 0.9,
                         child: ElevatedButton(
@@ -141,7 +140,7 @@ class WelcomeScreen extends StatelessWidget {
                         ),
                       ),
 
-                      const SizedBox(height: 40), // agar tombol makin turun ke bawah
+                      const SizedBox(height: 25), 
                     ],
                   ),
                 ),

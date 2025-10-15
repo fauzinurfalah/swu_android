@@ -35,10 +35,10 @@ class _LoginScreenState extends State<LoginScreen> {
     String nim = _nimController.text;
     String password = _passwordController.text;
 
-    // Simulasi proses login (ganti dengan API call sesungguhnya)
+    // Simulasi proses login 
     await Future.delayed(const Duration(seconds: 2));
 
-    // Contoh validasi sederhana (ganti dengan validasi dari backend)
+    // Contoh validasi sederhana 
     if (nim == "123456" && password == "password") {
       // Login berhasil, navigasi ke home screen
       if (mounted) {
@@ -47,7 +47,7 @@ class _LoginScreenState extends State<LoginScreen> {
           '/home',
           arguments: {
             'nim': nim,
-            'nama': 'Mahasiswa Demo', // Data dari API
+            'nama': 'Mahasiswa Demo', 
           },
         );
       }
@@ -63,7 +63,6 @@ class _LoginScreenState extends State<LoginScreen> {
         );
       }
     }
-     // Pastikan untuk menghentikan loading state setelah selesai
     if(mounted) {
       setState(() {
         _isLoading = false;
@@ -104,7 +103,6 @@ class _LoginScreenState extends State<LoginScreen> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        // Header Text
                         const Text(
                           'Halo!',
                           style: TextStyle(
