@@ -42,7 +42,7 @@ class WelcomeScreen extends StatelessWidget {
               ),
             ),
 
-            const SizedBox(height: 50),
+            const SizedBox(height: 80),
 
             Expanded(
               child: Container(
@@ -62,12 +62,12 @@ class WelcomeScreen extends StatelessWidget {
                       const Text(
                         'Selamat datang',
                         style: TextStyle(
-                          fontSize: 24,
+                          fontSize: 30,
                           fontWeight: FontWeight.bold,
                           color: Colors.black87,
                         ),
                       ),
-                      const SizedBox(height: 12),
+                      const SizedBox(height: 20),
                       const Text(
                         'Silahkan masuk atau mendaftar\nuntuk dapat menggunakan aplikasi MYSWU',
                         textAlign: TextAlign.center,
@@ -77,7 +77,7 @@ class WelcomeScreen extends StatelessWidget {
                         ),
                       ),
                       
-                      const Spacer(),
+                      const SizedBox(height: 80), 
 
                       // Tombol Masuk
                       SizedBox(
@@ -108,7 +108,7 @@ class WelcomeScreen extends StatelessWidget {
                           ),
                         ),
                       ),
-                      const SizedBox(height: 18),
+                      const SizedBox(height: 30),
 
                       // Tombol Daftar
                       SizedBox(
@@ -138,9 +138,7 @@ class WelcomeScreen extends StatelessWidget {
                             ),
                           ),
                         ),
-                      ),
-
-                      const SizedBox(height: 25), 
+                      ),                     
                     ],
                   ),
                 ),
