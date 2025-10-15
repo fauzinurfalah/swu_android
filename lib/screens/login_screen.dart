@@ -1,8 +1,9 @@
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
+import 'package:project_mobileprog/screens/register_screen.dart';
 
 class LoginScreen extends StatefulWidget {
-  const LoginScreen({Key? key}) : super(key: key);
+  const LoginScreen({super.key});
 
   @override
   State<LoginScreen> createState() => _LoginScreenState();
@@ -73,11 +74,11 @@ class _LoginScreenState extends State<LoginScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      // 1. Mengubah background menjadi warna solid biru sesuai gambar
+      
       backgroundColor: const Color(0xFF6292E1),
       body: Stack(
         children: [
-          // 2. Menyesuaikan posisi dan opacity logo background
+          // Logo
           Align(
             alignment: Alignment.topCenter,
             child: Padding(
@@ -85,19 +86,17 @@ class _LoginScreenState extends State<LoginScreen> {
               child: Opacity(
                 opacity: 0.2,
                 child: Image.asset(
-                  // Pastikan path asset logo Anda benar
                   'assets/images/swu.png',
-                  height: 300, // Logo diperbesar
+                  height: 300, 
                 ),
               ),
             ),
           ),
-          // Mengatur agar semua konten berada dalam area aman (safe area)
           SafeArea(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.center,
               children: [
-                // Mengubah posisi header
+                // Header
                 Padding(
                   padding: const EdgeInsets.only(top: 150.0, left: 24.0, right: 24.0),
                   child: Align(
@@ -105,7 +104,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        // 3. Header Text
+                        // Header Text
                         const Text(
                           'Halo!',
                           style: TextStyle(
@@ -128,13 +127,12 @@ class _LoginScreenState extends State<LoginScreen> {
                   ),
                 ),
                 const Spacer(),
-                // 4. Card Login
+                // Card Login
                 Container(
                   height: MediaQuery.of(context).size.height * 0.6,
                   width: double.infinity,
                   decoration: const BoxDecoration(
                     color: Colors.white,
-                    // Membuat sudut card lebih melengkung
                     borderRadius: BorderRadius.only(
                       topLeft: Radius.circular(40),
                       topRight: Radius.circular(40),
@@ -156,7 +154,7 @@ class _LoginScreenState extends State<LoginScreen> {
                             ),
                           ),
                           const SizedBox(height: 24),
-                          // 5. Input NIM dengan style baru
+                          // Input NIM 
                           TextFormField(
                             controller: _nimController,
                             decoration: InputDecoration(
@@ -164,7 +162,6 @@ class _LoginScreenState extends State<LoginScreen> {
                               filled: true,
                               fillColor: Colors.grey.shade100,
                               border: OutlineInputBorder(
-                                // Membuat input field lebih melengkung (pill shape)
                                 borderRadius: BorderRadius.circular(30),
                                 borderSide: BorderSide.none,
                               ),
@@ -182,7 +179,7 @@ class _LoginScreenState extends State<LoginScreen> {
                             },
                           ),
                           const SizedBox(height: 16),
-                          // 6. Input Password dengan style baru
+                          // Input Password 
                           TextFormField(
                             controller: _passwordController,
                             obscureText: !_isPasswordVisible,
@@ -241,7 +238,7 @@ class _LoginScreenState extends State<LoginScreen> {
                             ),
                           ),
                           const SizedBox(height: 16),
-                          // 7. Tombol Login dengan style baru
+                          // Tombol Login 
                           ElevatedButton(
                             onPressed: _isLoading ? null : _handleLogin,
                             style: ElevatedButton.styleFrom(
@@ -272,7 +269,7 @@ class _LoginScreenState extends State<LoginScreen> {
                                   ),
                           ),
                           const SizedBox(height: 24),
-                          // 8. Menambahkan teks "Belum punya akun"
+                          // "Belum punya akun"
                           Center(
                             child: RichText(
                               text: TextSpan(
@@ -290,12 +287,11 @@ class _LoginScreenState extends State<LoginScreen> {
                                     ),
                                     recognizer: TapGestureRecognizer()
                                       ..onTap = () {
-                                        // Aksi ketika teks di tap, contoh: navigasi ke halaman registrasi
-                                        ScaffoldMessenger.of(context).showSnackBar(
-                                          const SnackBar(
-                                            content: Text('Navigasi ke halaman registrasi'),
-                                          ),
-                                        );
+                                        Navigator.push(
+                                        context,
+                                        MaterialPageRoute(
+                                            builder: (context) => const RegisterScreen()),
+                                      );
                                       },
                                   ),
                                 ],
