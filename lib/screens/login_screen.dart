@@ -1,6 +1,9 @@
-import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
-import 'package:project_mobileprog/screens/register_screen.dart';
+import 'package:flutter/gestures.dart';
+import 'package:quickalert/quickalert.dart';
+import 'package:project_mobileprog/screens/home_screen.dart';
+import '../api/api_service.dart';
+import 'register_screen.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -10,65 +13,59 @@ class LoginScreen extends StatefulWidget {
 }
 
 class _LoginScreenState extends State<LoginScreen> {
-  final TextEditingController _nimController = TextEditingController();
-  final TextEditingController _passwordController = TextEditingController();
-  final _formKey = GlobalKey<FormState>();
+  final emailController = TextEditingController();
+  final passwordController = TextEditingController();
+  bool isLoading = false;
   bool _isPasswordVisible = false;
-  bool _isLoading = false;
 
-  @override
-  void dispose() {
-    _nimController.dispose();
-    _passwordController.dispose();
-    super.dispose();
-  }
-
-  Future<void> _handleLogin() async {
-    if (!_formKey.currentState!.validate()) {
+  Future<void> handleLogin() async {
+    // Validate form
+    if (emailController.text.isEmpty || passwordController.text.isEmpty) {
+      QuickAlert.show(
+        context: context,
+        type: QuickAlertType.error,
+        text: 'Email dan Password harus diisi!',
+      );
       return;
     }
-
-    setState(() {
-      _isLoading = true;
-    });
-
-    String nim = _nimController.text;
-    String password = _passwordController.text;
-
-    // Simulasi proses login 
-    await Future.delayed(const Duration(seconds: 2));
-
-    // Contoh validasi sederhana 
-    if (nim == "123456" && password == "password") {
-      // Login berhasil, navigasi ke home screen
-      if (mounted) {
-        Navigator.pushReplacementNamed(
-          context,
-          '/home',
-          arguments: {
-            'nim': nim,
-            'nama': 'Mahasiswa Demo', 
-          },
-        );
-      }
-    } else {
-      // Login gagal
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('NIM atau Password salah!'),
-            backgroundColor: Colors.red,
-            duration: Duration(seconds: 3),
-          ),
-        );
-      }
-    }
-    if(mounted) {
-      setState(() {
-        _isLoading = false;
-      });
-    }
+    await doLogin();
   }
+
+  Future<void> doLogin() async {
+    setState(() {
+      isLoading = true;
+    });
+    final res = await ApiService.login(
+      emailController.text,
+      passwordController.text,
+    );
+
+    print(res);
+    if (res['status'] == 200) {
+      await ApiService.saveToken(res['data'], emailController.text);
+      QuickAlert.show(
+        context: context,
+        type: QuickAlertType.success,
+        text: 'Login Berhasil',
+        onConfirmBtnTap: () {
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(builder: (_) => const HomeScreen()),
+          );
+        },
+      );
+    } else {
+      QuickAlert.show(
+        context: context,
+        type: QuickAlertType.error,
+        text: 'Email / Password Salah!',
+      );
+    }
+    setState(() {
+      isLoading = false;
+    });
+  }
+
 
   @override
   Widget build(BuildContext context) {
@@ -138,7 +135,6 @@ class _LoginScreenState extends State<LoginScreen> {
                   child: SingleChildScrollView(
                     padding: const EdgeInsets.fromLTRB(24, 32, 24, 24),
                     child: Form(
-                      key: _formKey,
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.stretch,
                         children: [
@@ -151,11 +147,11 @@ class _LoginScreenState extends State<LoginScreen> {
                             ),
                           ),
                           const SizedBox(height: 24),
-                          // Input NIM 
+                          // Input Email 
                           TextFormField(
-                            controller: _nimController,
+                            controller: emailController,
                             decoration: InputDecoration(
-                              hintText: 'NIM',
+                              hintText: 'Email',
                               filled: true,
                               fillColor: Colors.grey.shade100,
                               border: OutlineInputBorder(
@@ -167,10 +163,10 @@ class _LoginScreenState extends State<LoginScreen> {
                                 vertical: 16,
                               ),
                             ),
-                            keyboardType: TextInputType.number,
+                            keyboardType: TextInputType.emailAddress,
                             validator: (value) {
                               if (value == null || value.isEmpty) {
-                                return 'NIM harus diisi';
+                                return 'Email harus diisi';
                               }
                               return null;
                             },
@@ -178,7 +174,7 @@ class _LoginScreenState extends State<LoginScreen> {
                           const SizedBox(height: 16),
                           // Input Password 
                           TextFormField(
-                            controller: _passwordController,
+                            controller: passwordController,
                             obscureText: !_isPasswordVisible,
                             decoration: InputDecoration(
                               hintText: 'Password',
@@ -237,7 +233,7 @@ class _LoginScreenState extends State<LoginScreen> {
                           const SizedBox(height: 16),
                           // Tombol Login 
                           ElevatedButton(
-                            onPressed: _isLoading ? null : _handleLogin,
+                            onPressed: isLoading ? null : handleLogin,
                             style: ElevatedButton.styleFrom(
                               backgroundColor: const Color(0xFF6292E1),
                               padding:
@@ -247,7 +243,7 @@ class _LoginScreenState extends State<LoginScreen> {
                               ),
                               elevation: 0,
                             ),
-                            child: _isLoading
+                            child: isLoading
                                 ? const SizedBox(
                                     height: 20,
                                     width: 20,
