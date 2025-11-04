@@ -1,5 +1,6 @@
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/gestures.dart';
 import 'package:intl/intl.dart';
 import 'package:quickalert/quickalert.dart';
 import '../api/api_service.dart';
@@ -24,6 +25,8 @@ class _RegisterPagesScreen extends State<RegisterScreen> {
   final _passwordController = TextEditingController();
   final _confirmPasswordController = TextEditingController();
   bool _isObscure = true;
+  bool isLoading = false;
+  bool _isPasswordVisible = false;
 
   void _registerAct() async {
     if (_formKey.currentState!.validate()) {
@@ -64,9 +67,9 @@ class _RegisterPagesScreen extends State<RegisterScreen> {
           );
         }
       } catch (e) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text("Gagal registrasi: $e")));
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("Gagal registrasi: $e")),
+        );
         return;
       }
     }
@@ -88,153 +91,315 @@ class _RegisterPagesScreen extends State<RegisterScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: Text("Register Pages")),
-      body: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Form(
-          key: _formKey,
-          child: ListView(
-            children: [
-              // form input nama
-              TextFormField(
-                controller: _nameController,
-                decoration: const InputDecoration(
-                  labelText: "Name",
-                  prefixIcon: Icon(Icons.person),
-                ),
-                validator: (value) =>
-                    value!.isEmpty ? "Name tidak boleh kosong" : null,
-              ),
-              // spasi / jarak
-              const SizedBox(height: 16),
-              // form input tanggal lahir
-              TextFormField(
-                controller: _tglLahirController,
-                readOnly: true,
-                decoration: const InputDecoration(
-                  labelText: "Tanggal Lahir",
-                  suffixIcon: Icon(Icons.calendar_today),
-                ),
-                onTap: _pilihTanggal,
-                validator: (v) =>
-                    v!.isEmpty ? "Tanggal lahir wajib diisi" : null,
-              ),
-              // spasi / jarak
-              const SizedBox(height: 16),
-              // Jenis Kelamin
-              DropdownButtonFormField<String>(
-                decoration: const InputDecoration(labelText: "Jenis Kelamin"),
-                value: _jenisKelamin,
-                items: const [
-                  DropdownMenuItem(value: "L", child: Text("Laki-laki")),
-                  DropdownMenuItem(value: "P", child: Text("Perempuan")),
-                ],
-                onChanged: (value) => setState(() => _jenisKelamin = value),
-                validator: (v) => v == null ? "Pilih jenis kelamin" : null,
-              ),
-              // spasi / jarak
-              const SizedBox(height: 16),
-              // Form Input Email
-              TextFormField(
-                controller: _emailController,
-                decoration: const InputDecoration(
-                  labelText: "Email",
-                  prefixIcon: Icon(Icons.email),
-                ),
-                validator: (value) =>
-                    value!.isEmpty ? "Email tidak boleh kosong" : null,
-              ),
-              // spasi / jarak
-              const SizedBox(height: 16),
-              // Form Input Alamat
-              TextFormField(
-                controller: _alamat,
-                decoration: const InputDecoration(
-                  labelText: "Alamat",
-                  prefixIcon: Icon(Icons.person),
-                ),
-                validator: (value) =>
-                    value!.isEmpty ? "alamat tidak boleh kosong" : null,
-              ),
-              // spasi / jarak
-              const SizedBox(height: 16),
-              // Form Inputan Angkatan
-              TextFormField(
-                controller: _angkatan,
-                decoration: const InputDecoration(
-                  labelText: "Angkatan",
-                  prefixIcon: Icon(Icons.person),
-                ),
-                validator: (value) =>
-                    value!.isEmpty ? "Angkatan tidak boleh kosong" : null,
-              ),
-              // spasi / jarak
-              const SizedBox(height: 16),
-              // Form Input Tahun Masuk
-              TextFormField(
-                controller: _id_tahun,
-                decoration: const InputDecoration(
-                  labelText: "Tahun Masuk",
-                  prefixIcon: Icon(Icons.person),
-                ),
-                validator: (value) =>
-                    value!.isEmpty ? "Tahun Masuk tidak boleh kosong" : null,
-              ),
-              // spasi / jarak
-              const SizedBox(height: 16),
-              // Form Input Passowrd
-              TextFormField(
-                controller: _passwordController,
-                obscureText: _isObscure,
-                decoration: InputDecoration(
-                  labelText: "Password",
-                  prefixIcon: Icon(Icons.lock),
-                  suffixIcon: IconButton(
-                    icon: Icon(
-                      _isObscure ? Icons.visibility : Icons.visibility_off,
-                    ),
-                    onPressed: () {
-                      setState(() => _isObscure = !_isObscure);
-                    },
-                  ),
-                ),
-                validator: (value) =>
-                    value!.isEmpty ? "Password tidak boleh kosong" : null,
-              ),
-              // spasi / jarak
-              const SizedBox(height: 16),
-              // form confirmation password
-              TextFormField(
-                controller: _confirmPasswordController,
-                obscureText: _isObscure,
-                decoration: InputDecoration(
-                  labelText: "Confirm Password",
-                  prefixIcon: Icon(Icons.lock),
-                  suffixIcon: IconButton(
-                    icon: Icon(
-                      _isObscure ? Icons.visibility : Icons.visibility_off,
-                    ),
-                    onPressed: () {
-                      setState(() => _isObscure = !_isObscure);
-                    },
-                  ),
-                ),
-                validator: (value) => value != _passwordController.text
-                    ? "Password tidak sesuai"
-                    : null,
-              ),
-              // spasi / jarak
-              const SizedBox(height: 32),
-              // Button Aksi untuk register
-              ElevatedButton(
-                onPressed: _registerAct,
-                child: const Text("Register"),
-              ),
-            ],
-          ),
-        ),
+  final grayFill = const Color(0xFFF1F1F1);
+  final labelStyle = const TextStyle(
+    fontWeight: FontWeight.w700,
+    color: Color(0xFF9A9A9A),
+  );
+
+  InputDecoration _pillDec({
+    required String label,
+    required String emoji,
+    Widget? suffixIcon,
+  }) {
+    return InputDecoration(
+      labelText: label,
+      labelStyle: labelStyle,
+      filled: true,
+      fillColor: grayFill,
+      prefixIcon: Padding(
+        padding: const EdgeInsets.only(left: 16, right: 8),
+        child: Text(emoji, style: const TextStyle(fontSize: 20)),
       ),
+      prefixIconConstraints: const BoxConstraints(minWidth: 0, minHeight: 0),
+      contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
+      enabledBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(28),
+        borderSide: BorderSide.none,
+      ),
+      focusedBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(28),
+        borderSide: BorderSide.none,
+      ),
+      errorBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(28),
+        borderSide: const BorderSide(color: Colors.red),
+      ),
+      focusedErrorBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(28),
+        borderSide: const BorderSide(color: Colors.red),
+      ),
+      suffixIcon: suffixIcon,
     );
   }
+
+  return Scaffold(
+    backgroundColor: const Color(0xFF6292E1),
+    body: Stack(
+      children: [
+        // Watermark logo
+        Align(
+          alignment: Alignment.topCenter,
+          child: Padding(
+            padding: const EdgeInsets.only(top: 0),
+            child: Opacity(
+              opacity: 0.20,
+              child: Image.asset('assets/images/swu.png', height: 320),
+            ),
+          ),
+        ),
+
+        Positioned.fill(
+          top: 140,
+          child: ClipRRect(
+            borderRadius: const BorderRadius.only(
+              topLeft: Radius.circular(40),
+              topRight: Radius.circular(40),
+            ),
+            child: Container(
+              color: Colors.white,
+              child: SafeArea(
+                top: false,
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(20, 24, 20, 16),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // back row
+                      Row(
+                        children: [
+                          IconButton(
+                            padding: const EdgeInsets.only(right: 8),
+                            constraints: const BoxConstraints(),
+                            icon: const Icon(Icons.arrow_back_ios_new_rounded),
+                            onPressed: () => Navigator.of(context).pop(),
+                          ),
+                          const SizedBox(width: 6),
+                          const Text(
+                            "Kembali ke halaman login",
+                            style: TextStyle(
+                              fontWeight: FontWeight.w700,
+                              fontSize: 14,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 12),
+                      const Text(
+                        "Daftar Akun",
+                        style: TextStyle(
+                          fontSize: 28,
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+
+                      // FORM
+                      Expanded(
+                        child: Form(
+                          key: _formKey,
+                          child: ListView(
+                            padding: const EdgeInsets.only(top: 8, bottom: 8),
+                            children: [
+                              // Nama
+                              TextFormField(
+                                controller: _nameController,
+                                decoration: _pillDec(label: "Nama", emoji: "🧑‍🎓"),
+                                validator: (v) =>
+                                    v!.isEmpty ? "Name tidak boleh kosong" : null,
+                              ),
+                              const SizedBox(height: 12),
+
+                              // Tgl Lahir
+                              TextFormField(
+                                controller: _tglLahirController,
+                                readOnly: true,
+                                onTap: _pilihTanggal,
+                                decoration: _pillDec(
+                                  label: "Tanggal Lahir",
+                                  emoji: "📅",
+                                  suffixIcon: const Padding(
+                                    padding: EdgeInsets.only(right: 8),
+                                    child: Icon(Icons.calendar_today_rounded),
+                                  ),
+                                ),
+                                validator: (v) =>
+                                    v!.isEmpty ? "Tanggal lahir wajib diisi" : null,
+                              ),
+                              const SizedBox(height: 12),
+
+                              // Jenis Kelamin
+                              DropdownButtonFormField<String>(
+                                value: _jenisKelamin,
+                                decoration:
+                                    _pillDec(label: "Jenis Kelamin", emoji: "🚻"),
+                                items: const [
+                                  DropdownMenuItem(
+                                      value: "L", child: Text("Laki-laki")),
+                                  DropdownMenuItem(
+                                      value: "P", child: Text("Perempuan")),
+                                ],
+                                onChanged: (v) => setState(() => _jenisKelamin = v),
+                                validator: (v) =>
+                                    v == null ? "Pilih jenis kelamin" : null,
+                              ),
+                              const SizedBox(height: 12),
+
+                              // Email
+                              TextFormField(
+                                controller: _emailController,
+                                keyboardType: TextInputType.emailAddress,
+                                decoration:
+                                    _pillDec(label: "Email", emoji: "📧"),
+                                validator: (v) =>
+                                    v!.isEmpty ? "Email tidak boleh kosong" : null,
+                              ),
+                              const SizedBox(height: 12),
+
+                              // Alamat
+                              TextFormField(
+                                controller: _alamat,
+                                decoration:
+                                    _pillDec(label: "Alamat", emoji: "📍"),
+                                validator: (v) =>
+                                    v!.isEmpty ? "alamat tidak boleh kosong" : null,
+                              ),
+                              const SizedBox(height: 12),
+
+                              // Angkatan
+                              TextFormField(
+                                controller: _angkatan,
+                                decoration:
+                                    _pillDec(label: "Angkatan", emoji: "🏷️"),
+                                validator: (v) => v!.isEmpty
+                                    ? "Angkatan tidak boleh kosong"
+                                    : null,
+                              ),
+                              const SizedBox(height: 12),
+
+                              // Tahun Masuk
+                              TextFormField(
+                                controller: _id_tahun,
+                                decoration:
+                                    _pillDec(label: "Tahun Masuk", emoji: "📆"),
+                                validator: (v) => v!.isEmpty
+                                    ? "Tahun Masuk tidak boleh kosong"
+                                    : null,
+                              ),
+                              const SizedBox(height: 12),
+
+                              // Password
+                              TextFormField(
+                                controller: _passwordController,
+                                obscureText: !_isPasswordVisible,
+                                decoration: _pillDec(
+                                  label: "Password",
+                                  emoji: "🔒",
+                                  suffixIcon: IconButton(
+                                    onPressed: () => setState(() =>
+                                        _isPasswordVisible = !_isPasswordVisible),
+                                    icon: Icon(_isPasswordVisible
+                                        ? Icons.visibility_off
+                                        : Icons.visibility),
+                                  ),
+                                ),
+                                validator: (v) => v!.isEmpty
+                                    ? "Password tidak boleh kosong"
+                                    : null,
+                              ),
+                              const SizedBox(height: 12),
+
+                              // Konfirmasi Password
+                              TextFormField(
+                                controller: _confirmPasswordController,
+                                obscureText: !_isPasswordVisible,
+                                decoration: _pillDec(
+                                  label: "Konfirmasi Password",
+                                  emoji: "🔒",
+                                  suffixIcon: IconButton(
+                                    onPressed: () => setState(() =>
+                                        _isPasswordVisible = !_isPasswordVisible),
+                                    icon: Icon(_isPasswordVisible
+                                        ? Icons.visibility_off
+                                        : Icons.visibility),
+                                  ),
+                                ),
+                                validator: (v) => v != _passwordController.text
+                                    ? "Password tidak sesuai"
+                                    : null,
+                              ),
+                              const SizedBox(height: 20),
+
+                              // Button daftar
+                              SizedBox(
+                                width: double.infinity,
+                                height: 56,
+                                child: ElevatedButton(
+                                  onPressed: isLoading ? null : _registerAct,
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: Colors.black,
+                                    foregroundColor: Colors.white,
+                                    shape: const StadiumBorder(),
+                                  ),
+                                  child: isLoading
+                                      ? const SizedBox(
+                                          height: 22,
+                                          width: 22,
+                                          child: CircularProgressIndicator(
+                                            strokeWidth: 2.4,
+                                            valueColor:
+                                                AlwaysStoppedAnimation(Colors.white),
+                                          ),
+                                        )
+                                      : const Text(
+                                          "Daftarkan Akun Saya",
+                                          style: TextStyle(
+                                            fontSize: 16,
+                                            fontWeight: FontWeight.w700,
+                                          ),
+                                        ),
+                                ),
+                              ),
+                              const SizedBox(height: 18),
+
+                              // Footer
+                              Column(
+                                children: const [
+                                  Text(
+                                    "“Semoga ga nyesel masuk SWU”",
+                                    textAlign: TextAlign.center,
+                                    style: TextStyle(
+                                      color: Color(0xFF9A9A9A),
+                                      fontSize: 12.5,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                  SizedBox(height: 4),
+                                  Text(
+                                    "swu.ac.id",
+                                    textAlign: TextAlign.center,
+                                    style: TextStyle(
+                                      color: Color(0xFFB7B7B7),
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 8),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+      ],
+    ),
+  );
+}
 }
