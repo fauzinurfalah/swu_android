@@ -6,7 +6,6 @@ import '../api/api_service.dart';
 import 'login_screen.dart';
 import '../widgets/bottom_nav.dart';
 
-// Filter options for berita page
 enum BeritaFilter { all, read, unread, starred }
 
 class Berita extends StatefulWidget {
@@ -21,11 +20,9 @@ class _BeritaState extends State<Berita> {
   bool isLoading = true;
   String? error;
   
-  // Local UI state for filtering and marking
   BeritaFilter selectedFilter = BeritaFilter.all;
   String searchQuery = '';
 
-  // Track read/starred status locally by a key derived from berita
   final Set<String> _readSet = {};
   final Set<String> _starredSet = {};
 
@@ -103,7 +100,6 @@ class _BeritaState extends State<Berita> {
     }
   }
   
-  // UI builders for filter chips
   Widget _buildFilterChip(String label, BeritaFilter filter) {
     final selected = selectedFilter == filter;
     return Column(
@@ -176,7 +172,6 @@ class _BeritaState extends State<Berita> {
     );
   }
   Widget build(BuildContext context) {
-    // prepare filtered list based on selectedFilter and local state
     final List<dynamic> displayed = [];
     for (var i = 0; i < beritaAkademik.length; i++) {
       final b = beritaAkademik[i];
@@ -199,7 +194,7 @@ class _BeritaState extends State<Berita> {
           break;
       }
 
-      // Apply search filter
+      // Search filter
       if (include && searchQuery.isNotEmpty) {
         final title = (b['judul'] ?? '').toString().toLowerCase();
         final slug = (b['slug'] ?? '').toString().toLowerCase();
@@ -215,7 +210,7 @@ class _BeritaState extends State<Berita> {
         return false;
       },
       child: Scaffold(
-        // no AppBar per request
+
         body: RefreshIndicator(
         onRefresh: _getBeritaAkademik,
         child: SingleChildScrollView(
@@ -287,7 +282,6 @@ class _BeritaState extends State<Berita> {
                 ],
               ),
               const SizedBox(height: 12),
-              // Filter chips with underline indicator
               Row(
                 children: [
                   _buildFilterChip('Terbaca', BeritaFilter.read),
@@ -343,11 +337,11 @@ class _BeritaState extends State<Berita> {
                       final key = _keyForBerita(berita, index);
                       final isRead = _readSet.contains(key) || (berita is Map && (berita['is_read'] == true || berita['read'] == true));
 
-                      // card visuals: unread => blue, read => gray
+                      // card visuals
                       final bgColor = !isRead ? Colors.blue.shade300 : Colors.grey.shade200;
                       final titleColor = !isRead ? Colors.white : Colors.black87;
 
-                      // star button placed below the card
+                      // star button 
                       Widget starButton(String key) => GestureDetector(
                             onTap: () => _toggleStar(key),
                             child: Container(
@@ -420,7 +414,6 @@ class _BeritaState extends State<Berita> {
                                           style: TextStyle(fontSize: 14, color: titleColor.withOpacity(0.9)),
                                         ),
                                         const SizedBox(height: 12),
-                                        // star button inside the card, aligned to the right
                                         Row(
                                           mainAxisAlignment: MainAxisAlignment.end,
                                           children: [
@@ -431,7 +424,6 @@ class _BeritaState extends State<Berita> {
                                     ),
                               ),
                             ),
-                                // removed external star align; star now inside the card
                           ],
                         ),
                       );
