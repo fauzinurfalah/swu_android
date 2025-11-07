@@ -38,6 +38,8 @@ dependencies:
   dio: ^5.9.0
   quickalert: ^1.1.0
   intl: ^0.18.0
+  iconsax: ^0.0.8
+  image_picker: ^1.0.7
 
 dev_dependencies:
   flutter_test:

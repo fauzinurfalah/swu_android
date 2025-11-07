@@ -27,6 +27,7 @@ class _RegisterPagesScreen extends State<RegisterScreen> {
   bool _isObscure = true;
   bool isLoading = false;
   bool _isPasswordVisible = false;
+  bool _isconfirmPasswordVisible = false;
 
   void _registerAct() async {
     if (_formKey.currentState!.validate()) {
@@ -172,7 +173,13 @@ class _RegisterPagesScreen extends State<RegisterScreen> {
                             padding: const EdgeInsets.only(right: 8),
                             constraints: const BoxConstraints(),
                             icon: const Icon(Icons.arrow_back_ios_new_rounded),
-                            onPressed: () => Navigator.of(context).pop(),
+                            onPressed: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                  builder: (context) => const LoginScreen()),
+                            );
+                            },
                           ),
                           const SizedBox(width: 6),
                           const Text(
@@ -312,14 +319,14 @@ class _RegisterPagesScreen extends State<RegisterScreen> {
                               // Konfirmasi Password
                               TextFormField(
                                 controller: _confirmPasswordController,
-                                obscureText: !_isPasswordVisible,
+                                obscureText: !_isconfirmPasswordVisible,
                                 decoration: _pillDec(
                                   label: "Konfirmasi Password",
                                   emoji: "🔒",
                                   suffixIcon: IconButton(
                                     onPressed: () => setState(() =>
-                                        _isPasswordVisible = !_isPasswordVisible),
-                                    icon: Icon(_isPasswordVisible
+                                        _isconfirmPasswordVisible = !_isconfirmPasswordVisible),
+                                    icon: Icon(_isconfirmPasswordVisible
                                         ? Icons.visibility_off
                                         : Icons.visibility),
                                   ),
