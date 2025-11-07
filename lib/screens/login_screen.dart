@@ -41,6 +41,19 @@ class _LoginScreenState extends State<LoginScreen> {
     );
 
     print(res);
+    
+    if (res.containsKey('error')) {
+      QuickAlert.show(
+        context: context,
+        type: QuickAlertType.error,
+        text: res['error'],
+      );
+      setState(() {
+        isLoading = false;
+      });
+      return;
+    }
+
     if (res['status'] == 200) {
       await ApiService.saveToken(res['data'], emailController.text);
       QuickAlert.show(
@@ -55,10 +68,11 @@ class _LoginScreenState extends State<LoginScreen> {
         },
       );
     } else {
+      final errorMessage = res['message'] ?? 'Email / Password Salah!';
       QuickAlert.show(
         context: context,
         type: QuickAlertType.error,
-        text: 'Email / Password Salah!',
+        text: errorMessage,
       );
     }
     setState(() {
