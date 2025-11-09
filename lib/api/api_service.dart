@@ -3,16 +3,14 @@ import 'package:dio/dio.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class ApiService {
-  static const String baseUrl = 'http://36.91.103.196:8000/api/';
+  static const String baseUrl = 'http://36.88.99.179:8000/api/';
 
-   static final Dio _dio = Dio(
+  static final Dio _dio = Dio(
     BaseOptions(
       baseUrl: baseUrl,
       connectTimeout: const Duration(seconds: 15),
       receiveTimeout: const Duration(seconds: 15),
-      headers: const {
-        'Accept': 'application/json',
-      },
+      headers: const {'Accept': 'application/json'},
     ),
   );
 
@@ -32,12 +30,11 @@ class ApiService {
       final statusCode = e.response?.statusCode ?? 500;
       final data = e.response?.data;
       if (data is Map<String, dynamic>) {
-        final message = data['message'] ?? data['error'] ??
+        final message =
+            data['message'] ??
+            data['error'] ??
             'Terjadi kesalahan pada server (Kode: $statusCode).';
-        return {
-          'status': statusCode,
-          'message': message,
-        };
+        return {'status': statusCode, 'message': message};
       }
       return {
         'status': statusCode,
@@ -46,7 +43,8 @@ class ApiService {
     }
 
     return {
-      'error': 'Terjadi kesalahan yang tidak diketahui. Silakan coba lagi nanti.'
+      'error':
+          'Terjadi kesalahan yang tidak diketahui. Silakan coba lagi nanti.',
     };
   }
 
