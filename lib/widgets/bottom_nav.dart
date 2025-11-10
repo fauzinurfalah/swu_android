@@ -55,8 +55,14 @@ class _BottomNavState extends State<BottomNav> {
       currentIndex: index,
       onTap: (i) => _onItemTapped(i, context),
       items: const [
-        BottomNavigationBarItem(icon: Icon(Icons.home), label: "Home"),
-        BottomNavigationBarItem(icon: Icon(Icons.newspaper), label: "News"),
+        BottomNavigationBarItem(icon: ImageIcon(
+            AssetImage('assets/icons/home.png'),
+            size: 26,
+          ), label: "Home"),
+        BottomNavigationBarItem(icon: ImageIcon(
+            AssetImage('assets/icons/news.png'),
+            size: 26,
+          ), label: "News"),
       ],
     );
   }

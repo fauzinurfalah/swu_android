@@ -3,7 +3,6 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:dio/dio.dart';
 import '../api/api_service.dart';
 import '../widgets/bottom_nav.dart';
-import 'package:iconsax/iconsax.dart';
 import 'biodata.dart';
 import 'absensi_screen.dart';
 
@@ -53,100 +52,63 @@ class _HomeScreenState extends State<HomeScreen> {
       bottomNavigationBar: const BottomNav(initialIndex: 0),
       body: SafeArea(
         child: SingleChildScrollView(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
           child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // ======= HEADER BIRU =======
-              Container(
-                width: double.infinity,
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: const Color.fromARGB(255, 123, 167, 226),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+              _buildBlueHeader(),
+              const SizedBox(height: 24),
+
+              // ======= TOMBOL ABSENSI & JADWAL =======
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                child: Row(
                   children: [
-                    const Text(
-                      'Semangat Pagi!',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 20,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    const SizedBox(height: 14),
-                    // ======= KARTU PROFIL =======
-                    // ======= KARTU PROFIL =======
-                    GestureDetector(
-                      onTap: () {
-                        // Navigasi ke halaman Biodata
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) =>
-                                BiodataPage(), // pastikan sudah import
+                    Expanded(
+                      child: InkWell(
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => const AbsensiScreen(),
+                            ),
+                          );
+                        },
+                        borderRadius: BorderRadius.circular(16),
+                        child: Container(
+                          height: 100,
+                          decoration: BoxDecoration(
+                            color: Colors.green.shade400,
+                            borderRadius: BorderRadius.circular(16),
                           ),
-                        );
-                      },
-                      child: Container(
-                        padding: const EdgeInsets.all(12),
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(16),
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.black12,
-                              blurRadius: 5,
-                              offset: const Offset(0, 2),
-                            ),
-                          ],
-                        ),
-                        child: Row(
-                          children: [
-                            CircleAvatar(
-                              radius: 30,
-                              backgroundImage: user?["foto"] != null
-                                  ? NetworkImage(user!["foto"])
-                                  : null,
-                              child: user?["foto"] == null
-                                  ? const Icon(Icons.person, size: 35)
-                                  : null,
-                            ),
-                            const SizedBox(width: 12),
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    user?["nim"] ?? "NIM...",
-                                    style: const TextStyle(
-                                      fontSize: 13,
-                                      color: Colors.black54,
-                                    ),
-                                  ),
-                                  Text(
-                                    user?["nama"] ?? "Loading...",
-                                    style: const TextStyle(
-                                      fontSize: 15,
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                  ),
-                                  Text(
-                                    user?["program_studi"] != null
-                                        ? "${user!["program_studi"]["nama_prodi"]} - ${user!["angkatan"]}"
-                                        : "",
-                                    style: const TextStyle(
-                                      fontSize: 13,
-                                      color: Colors.black54,
-                                    ),
-                                  ),
-                                ],
+                          child: const Center(
+                            child: Text(
+                              'Absensi',
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontSize: 20,
+                                fontWeight: FontWeight.bold,
                               ),
                             ),
-                          ],
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: Container(
+                        height: 100,
+                        decoration: BoxDecoration(
+                          color: Colors.orange.shade400,
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                        child: const Center(
+                          child: Text(
+                            'Jadwal',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 20,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
                         ),
                       ),
                     ),
@@ -154,89 +116,26 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
               ),
 
-              const SizedBox(height: 24),
-
-              // ======= TOMBOL ABSENSI & JADWAL =======
-              Row(
-                children: [
-                  // ====== TOMBOL ABSENSI ======
-                  Expanded(
-                    child: InkWell(
-                      onTap: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => AbsensiScreen(),
-                          ),
-                        );
-                      },
-                      borderRadius: BorderRadius.circular(16),
-                      child: Stack(
-                        children: [
-                          Container(
-                            height: 100,
-                            decoration: BoxDecoration(
-                              color: Colors.green.shade400,
-                              borderRadius: BorderRadius.circular(16),
-                            ),
-                            child: const Center(
-                              child: Text(
-                                'Absensi',
-                                style: TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 20,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-
-                  const SizedBox(width: 16),
-
-                  // ====== TOMBOL JADWAL (belum aktif) ======
-                  Expanded(
-                    child: Container(
-                      height: 100,
-                      decoration: BoxDecoration(
-                        color: Colors.orange.shade400,
-                        borderRadius: BorderRadius.circular(16),
-                      ),
-                      child: const Center(
-                        child: Text(
-                          'Jadwal',
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontSize: 20,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-
               const SizedBox(height: 28),
 
-              // ======= MENU GRID (BULAT HITAM) =======
-              GridView.count(
-                crossAxisCount: 3,
-                shrinkWrap: true,
-                physics: const NeverScrollableScrollPhysics(),
-                mainAxisSpacing: 16,
-                crossAxisSpacing: 16,
-                children: [
-                  _menuItem(Iconsax.document_upload, 'Input KRS'),
-                  _menuItem(Iconsax.clipboard_text, 'Daftar Nilai'),
-                  _menuItem(Iconsax.award, 'Kartu Hasil Studi'),
-                  _menuItem(Iconsax.book, 'KRS'),
-                  _menuItem(Iconsax.warning_2, 'SP'),
-                  const SizedBox(), // biar layout seimbang
-                ],
+              // ======= MENU GRID (BULAT HITAM + SVG) =======
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                child: GridView.count(
+                  crossAxisCount: 3,
+                  shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(),
+                  mainAxisSpacing: 16,
+                  crossAxisSpacing: 16,
+                  children: [
+                    _menuItem('assets/icons/input_krs.png', 'Input KRS'),
+                    _menuItem('assets/icons/daftar_nilai.png', 'Daftar Nilai'),
+                    _menuItem('assets/icons/khs.png', 'Kartu Hasil Studi'),
+                    _menuItem('assets/icons/krs.png', 'KRS'),
+                    _menuItem('assets/icons/sp.png', 'SP'),
+                    const SizedBox(),
+                  ],
+                ),
               ),
             ],
           ),
@@ -245,26 +144,190 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  Widget _menuItem(IconData icon, String label) {
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Container(
-          height: 70,
-          width: 70,
-          decoration: const BoxDecoration(
-            color: Colors.black,
-            shape: BoxShape.circle,
+  // ========= HEADER BIRU ATAS =========
+  Widget _buildBlueHeader() {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.fromLTRB(20, 28, 20, 30),
+      decoration: const BoxDecoration(
+        color: Color(0xFF7BA7E2),
+        borderRadius: BorderRadius.only(
+          bottomLeft: Radius.circular(40),
+          bottomRight: Radius.circular(40),
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Bar atas: greeting + logo
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              const Expanded(
+                child: Text(
+                  'Semangat Pagi!',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 24,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+              Container(
+                height: 46,
+                width: 46,
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  shape: BoxShape.circle,
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black26,
+                      blurRadius: 5,
+                      offset: Offset(0, 2),
+                    ),
+                  ],
+                ),
+                child: Padding(
+                  padding: const EdgeInsets.all(6),
+                  child: Image.asset(
+                    'assets/images/swu.png',
+                    fit: BoxFit.contain,
+                  ),
+                ),
+              ),
+            ],
           ),
-          child: Icon(icon, color: Colors.white, size: 30),
+
+          const SizedBox(height: 25),
+
+          // Kartu profil putih
+          GestureDetector(
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const BiodataPage(),
+                ),
+              );
+            },
+            child: Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(14),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(20),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black12,
+                    blurRadius: 8,
+                    offset: Offset(0, 3),
+                  ),
+                ],
+              ),
+              child: Row(
+                children: [
+                  CircleAvatar(
+                    radius: 30,
+                    backgroundImage:
+                        (user?["foto"] != null && user?["foto"] != "")
+                            ? NetworkImage(user!["foto"])
+                            : null,
+                    child: (user?["foto"] == null || user?["foto"] == "")
+                        ? const Icon(
+                            Icons.person,
+                            size: 35,
+                            color: Colors.grey,
+                          )
+                        : null,
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          user?["nim"] ?? "NIM1234567890",
+                          style: const TextStyle(
+                            fontSize: 13,
+                            color: Colors.black87,
+                          ),
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          user?["nama"] ?? "Nama Mahasiswa",
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                            fontSize: 17,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        const SizedBox(height: 2),
+                        Row(
+                          children: [
+                            Expanded(
+                              child: Text(
+                                user?["program_studi"]?["nama_prodi"] ??
+                                    "Program Studi",
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: const TextStyle(
+                                  fontSize: 13,
+                                  color: Colors.black54,
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            Text(
+                              "Semester ${user?["semester"] ?? "5"}",
+                              style: const TextStyle(
+                                fontSize: 13,
+                                fontWeight: FontWeight.w600,
+                                color: Colors.black87,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ========= MENU GRID ITEM (SVG + BULAT HITAM) =========
+  Widget _menuItem(String assetPath, String label) {
+  return Column(
+    mainAxisSize: MainAxisSize.min,
+    children: [
+      Container(
+        height: 70,
+        width: 70,
+        decoration: const BoxDecoration(
+          color: Colors.black,
+          shape: BoxShape.circle,
         ),
-        const SizedBox(height: 8),
-        Text(
-          label,
-          textAlign: TextAlign.center,
-          style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500),
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Image.asset(
+            assetPath,
+            color: Colors.white, // opsional, buat monokrom
+            fit: BoxFit.contain,
+          ),
         ),
-      ],
+      ),
+      const SizedBox(height: 8),
+      Text(
+        label,
+        textAlign: TextAlign.center,
+        style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500),
+      ),
+    ],
     );
   }
 }
