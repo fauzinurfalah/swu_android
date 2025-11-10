@@ -45,10 +45,9 @@ class _BottomNavState extends State<BottomNav> {
   @override
   Widget build(BuildContext context) {
     return BottomNavigationBar(
-      type: BottomNavigationBarType.fixed, // biar semua ikon tampil
-      backgroundColor: Colors.white, // latar belakang bar putih
-      selectedItemColor: Colors.black, // warna ikon aktif hitam solid
-      unselectedItemColor: Colors.black54, // warna ikon nonaktif hitam transparan
+      type: BottomNavigationBarType.fixed, 
+      selectedItemColor: Colors.black, 
+      unselectedItemColor: Colors.black54, 
       selectedLabelStyle: const TextStyle(fontWeight: FontWeight.bold),
       unselectedLabelStyle: const TextStyle(color: Colors.black54),
 

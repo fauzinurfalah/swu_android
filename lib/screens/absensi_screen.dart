@@ -60,11 +60,11 @@ class _AbsensiScreenState extends State<AbsensiScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFB3D4FC), // biru muda seperti contoh
+      backgroundColor: Color(0xFF7BA7E2), 
       body: SafeArea(
         child: Column(
           children: [
-            // ====== HEADER FIXED ======
+            // ====== HEADER ======
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
               child: Row(
@@ -72,22 +72,33 @@ class _AbsensiScreenState extends State<AbsensiScreen> {
                 children: [
                   // Tombol back
                   IconButton(
-                    icon: const Icon(
-                      Iconsax.arrow_left,
-                      color: Colors.white,
-                      size: 26,
-                    ),
+                    icon: const Icon(Icons.arrow_back_ios_new, size: 20),
                     onPressed: () => Navigator.pop(context),
                   ),
 
                   // Logo bulat kanan atas
-                  const CircleAvatar(
-                    backgroundColor: Colors.white,
-                    radius: 20,
-                    backgroundImage: NetworkImage(
-                      "https://i.pravatar.cc/150?img=12",
+                Container(
+                height: 46,
+                width: 46,
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  shape: BoxShape.circle,
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black26,
+                      blurRadius: 5,
+                      offset: Offset(0, 2),
                     ),
+                  ],
+                ),
+                child: Padding(
+                  padding: const EdgeInsets.all(6),
+                  child: Image.asset(
+                    'assets/images/swu.png',
+                    fit: BoxFit.contain,
                   ),
+                ),
+              ),
                 ],
               ),
             ),

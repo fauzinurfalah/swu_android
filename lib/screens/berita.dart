@@ -221,15 +221,28 @@ class _BeritaState extends State<Berita> {
               // Top: logo + search
               Row(
                 children: [
-                  Padding(
-                    padding: const EdgeInsets.only(right: 12.0),
-                    child: Image.asset(
-                      'assets/images/swu.png',
-                      height: 36,
-                      width: 36,
-                      fit: BoxFit.contain,
+                  Container(
+                height: 46,
+                width: 46,
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  shape: BoxShape.circle,
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black26,
+                      blurRadius: 5,
+                      offset: Offset(0, 2),
                     ),
+                  ],
+                ),
+                child: Padding(
+                  padding: const EdgeInsets.all(6),
+                  child: Image.asset(
+                    'assets/images/swu.png',
+                    fit: BoxFit.contain,
                   ),
+                ),
+              ),
                   Expanded(
                     child: Container(
                       height: 44,
