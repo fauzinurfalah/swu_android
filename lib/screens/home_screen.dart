@@ -47,6 +47,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
+
     return Scaffold(
       backgroundColor: Colors.white,
       bottomNavigationBar: const BottomNav(initialIndex: 0),
@@ -116,17 +117,17 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
               ),
 
-              const SizedBox(height: 28),
+              const SizedBox(height: 20),
 
-              // ======= MENU GRID (BULAT HITAM + SVG) =======
+              // ======= MENU GRID =======
               Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16),
+                padding: const EdgeInsets.symmetric(horizontal: 40),
                 child: GridView.count(
                   crossAxisCount: 3,
                   shrinkWrap: true,
                   physics: const NeverScrollableScrollPhysics(),
-                  mainAxisSpacing: 16,
-                  crossAxisSpacing: 16,
+                  mainAxisSpacing: 40,
+                  crossAxisSpacing: 40,
                   children: [
                     _menuItem('assets/icons/input_krs.png', 'Input KRS'),
                     _menuItem('assets/icons/daftar_nilai.png', 'Daftar Nilai'),
@@ -146,6 +147,9 @@ class _HomeScreenState extends State<HomeScreen> {
 
   // ========= HEADER BIRU ATAS =========
   Widget _buildBlueHeader() {
+    final hasFoto =
+        (user?["foto"] != null &&
+        (user?["foto"]?.toString().isNotEmpty ?? false));
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.fromLTRB(20, 28, 20, 30),
@@ -206,7 +210,7 @@ class _HomeScreenState extends State<HomeScreen> {
               Navigator.push(
                 context,
                 MaterialPageRoute(
-                  builder: (context) => const BiodataPage(),
+                  builder: (context) => const Biodata(),
                 ),
               );
             },
@@ -227,19 +231,14 @@ class _HomeScreenState extends State<HomeScreen> {
               child: Row(
                 children: [
                   CircleAvatar(
-                    radius: 30,
-                    backgroundImage:
-                        (user?["foto"] != null && user?["foto"] != "")
-                            ? NetworkImage(user!["foto"])
-                            : null,
-                    child: (user?["foto"] == null || user?["foto"] == "")
-                        ? const Icon(
-                            Icons.person,
-                            size: 35,
-                            color: Colors.grey,
-                          )
-                        : null,
-                  ),
+                          radius: 35,
+                          backgroundImage: hasFoto
+                              ? NetworkImage(user!["foto"])
+                              : const AssetImage(
+                                      "assets/images/default_user.png",
+                                    )
+                                    as ImageProvider,
+                        ),
                   const SizedBox(width: 12),
                   Expanded(
                     child: Column(

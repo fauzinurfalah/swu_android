@@ -210,7 +210,6 @@ class _BeritaState extends State<Berita> {
         return false;
       },
       child: Scaffold(
-
         body: RefreshIndicator(
         onRefresh: _getBeritaAkademik,
         child: SingleChildScrollView(
@@ -220,68 +219,70 @@ class _BeritaState extends State<Berita> {
             children: [
               // Top: logo + search
               Row(
-                children: [
-                  Container(
-                height: 46,
-                width: 46,
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  shape: BoxShape.circle,
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black26,
-                      blurRadius: 5,
-                      offset: Offset(0, 2),
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                Container(
+                  height: 56, 
+                  width: 56,
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    shape: BoxShape.circle,
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black26,
+                        blurRadius: 6,
+                        offset: Offset(0, 2),
+                      ),
+                    ],
+                  ),
+                  child: Padding(
+                    padding: const EdgeInsets.all(8),
+                    child: Image.asset(
+                      'assets/images/swu.png',
+                      fit: BoxFit.contain,
                     ),
-                  ],
-                ),
-                child: Padding(
-                  padding: const EdgeInsets.all(6),
-                  child: Image.asset(
-                    'assets/images/swu.png',
-                    fit: BoxFit.contain,
                   ),
                 ),
-              ),
-                  Expanded(
-                    child: Container(
-                      height: 44,
-                      decoration: BoxDecoration(
-                        color: Colors.grey.shade200,
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      padding: const EdgeInsets.symmetric(horizontal: 12),
-                      child: Row(
-                        children: [
-                          const Icon(Icons.search, color: Colors.grey),
-                          const SizedBox(width: 8),
-                          Expanded(
-                            child: TextField(
-                              onChanged: (value) => setState(() => searchQuery = value),
-                              decoration: const InputDecoration(
-                                hintText: 'Cari berita...',
-                                hintStyle: TextStyle(color: Colors.grey),
-                                border: InputBorder.none,
-                                contentPadding: EdgeInsets.zero,
-                              ),
-                              style: const TextStyle(color: Colors.black87),
+                const SizedBox(width: 16), 
+                Expanded(
+                  child: Container(
+                    height: 48,
+                    decoration: BoxDecoration(
+                      color: Colors.grey.shade200,
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    padding: const EdgeInsets.symmetric(horizontal: 14),
+                    child: Row(
+                      children: [
+                        const Icon(Icons.search, color: Colors.grey),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: TextField(
+                            onChanged: (value) => setState(() => searchQuery = value),
+                            decoration: const InputDecoration(
+                              hintText: 'Cari berita...',
+                              hintStyle: TextStyle(color: Colors.grey),
+                              border: InputBorder.none,
+                              contentPadding: EdgeInsets.zero,
+                            ),
+                            style: const TextStyle(color: Colors.black87),
+                          ),
+                        ),
+                        if (searchQuery.isNotEmpty)
+                          GestureDetector(
+                            onTap: () => setState(() => searchQuery = ''),
+                            child: const Padding(
+                              padding: EdgeInsets.only(left: 8.0),
+                              child: Icon(Icons.close, color: Colors.grey, size: 20),
                             ),
                           ),
-                          if (searchQuery.isNotEmpty)
-                            GestureDetector(
-                              onTap: () => setState(() => searchQuery = ''),
-                              child: const Padding(
-                                padding: EdgeInsets.only(left: 8.0),
-                                child: Icon(Icons.close, color: Colors.grey, size: 20),
-                              ),
-                            ),
-                        ],
-                      ),
+                      ],
                     ),
                   ),
-                ],
+                ),
+              ],
               ),
-              const SizedBox(height: 18),
+              const SizedBox(height: 28),
               // Title
               Row(
                 children: const [

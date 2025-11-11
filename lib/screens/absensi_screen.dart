@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:iconsax/iconsax.dart';
+import 'package:project_mobileprog/screens/home_screen.dart';
 
 class AbsensiScreen extends StatefulWidget {
   const AbsensiScreen({Key? key}) : super(key: key);
@@ -73,7 +74,11 @@ class _AbsensiScreenState extends State<AbsensiScreen> {
                   // Tombol back
                   IconButton(
                     icon: const Icon(Icons.arrow_back_ios_new, size: 20),
-                    onPressed: () => Navigator.pop(context),
+                    onPressed: () => 
+                    Navigator.push(
+                      context,MaterialPageRoute(
+                      builder: (context) => const HomeScreen()),
+                    ),
                   ),
 
                   // Logo bulat kanan atas
