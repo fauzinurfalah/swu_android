@@ -121,13 +121,13 @@ class _HomeScreenState extends State<HomeScreen> {
 
               // ======= MENU GRID =======
               Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 40),
+                padding: const EdgeInsets.symmetric(horizontal: 25),
                 child: GridView.count(
                   crossAxisCount: 3,
                   shrinkWrap: true,
                   physics: const NeverScrollableScrollPhysics(),
-                  mainAxisSpacing: 40,
-                  crossAxisSpacing: 40,
+                  mainAxisSpacing: 25,
+                  crossAxisSpacing: 25,
                   children: [
                     _menuItem('assets/icons/input_krs.png', 'Input KRS'),
                     _menuItem('assets/icons/daftar_nilai.png', 'Daftar Nilai'),
