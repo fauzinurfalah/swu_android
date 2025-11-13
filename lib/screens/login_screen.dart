@@ -223,27 +223,7 @@ class _LoginScreenState extends State<LoginScreen> {
                               return null;
                             },
                           ),
-                          const SizedBox(height: 8),
-                          // Lupa Password
-                          Align(
-                            alignment: Alignment.centerRight,
-                            child: TextButton(
-                              onPressed: () {
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  const SnackBar(
-                                    content: Text('Fitur lupa password'),
-                                  ),
-                                );
-                              },
-                              child: const Text(
-                                'Lupa password ya?',
-                                style: TextStyle(
-                                  color: Color(0xFF6292E1),
-                                  fontSize: 13,
-                                ),
-                              ),
-                            ),
-                          ),
+                          
                           const SizedBox(height: 16),
                           // Tombol Login 
                           ElevatedButton(
