@@ -395,7 +395,7 @@ class _BiodataState extends State<Biodata> {
                       ),
                       const SizedBox(height: 40),
 
-                      // FIELDS (mirip desain)
+                      // FIELDS 
                       _buildEditableField("Nama", namaC),
                       if (nim.isNotEmpty) _buildStaticField("NIM", nim),
                       if (studi.isNotEmpty) _buildStaticField("Studi", studi),
@@ -408,7 +408,7 @@ class _BiodataState extends State<Biodata> {
 
                       const SizedBox(height: 28),
 
-                      // TOMBOL SAMA SEPERTI SEBELUMNYA
+                      // TOMBOL 
                       ElevatedButton.icon(
                         onPressed: isLoading ? null : _updateBiodata,
                         icon: const Icon(Icons.save),

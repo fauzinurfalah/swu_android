@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:intl/date_symbol_data_local.dart';
-import 'package:iconsax/iconsax.dart';
 import 'package:project_mobileprog/screens/home_screen.dart';
 
 class AbsensiScreen extends StatefulWidget {
