@@ -1,7 +1,7 @@
 import 'dart:typed_data';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
-import 'package:project_mobileprog/screens/home_screen.dart';
+import 'home_screen.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:dio/dio.dart';
 import 'package:image_picker/image_picker.dart';

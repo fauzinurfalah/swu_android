@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/gestures.dart';
 import 'package:quickalert/quickalert.dart';
-import 'package:project_mobileprog/screens/home_screen.dart';
+import './home_screen.dart';
 import '../api/api_service.dart';
 import 'register_screen.dart';
 

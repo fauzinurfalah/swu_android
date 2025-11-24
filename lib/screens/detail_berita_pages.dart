@@ -33,7 +33,7 @@ class DetailBeritaPages extends StatelessWidget {
               alignment: Alignment.centerLeft,
               child: GestureDetector(
                 onTap: () => Navigator.pop(context),
-                child: const Icon(Icons.arrow_back, color: Colors.white, size: 26),
+                child: const Icon(Icons.arrow_back_ios_new, color: Colors.white, size: 20),
               ),
             ),
           ),
