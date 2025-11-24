@@ -16,7 +16,7 @@ class WelcomeScreen extends StatelessWidget {
             // Logo
             Center(
               child: Image.asset(
-                'assets/images/swu.png', 
+                'assets/images/swu.png',
                 width: 130,
                 height: 130,
               ),
@@ -35,10 +35,7 @@ class WelcomeScreen extends StatelessWidget {
             const Text(
               'Aplikasi pintar untuk civitas akademika\nSTMIK Widya Utama',
               textAlign: TextAlign.center,
-              style: TextStyle(
-                fontSize: 15,
-                color: Colors.black54,
-              ),
+              style: TextStyle(fontSize: 15, color: Colors.black54),
             ),
 
             const SizedBox(height: 80),
@@ -54,7 +51,10 @@ class WelcomeScreen extends StatelessWidget {
                   ),
                 ),
                 child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 30, vertical: 40),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 30,
+                    vertical: 40,
+                  ),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.center,
                     children: [
@@ -70,13 +70,10 @@ class WelcomeScreen extends StatelessWidget {
                       const Text(
                         'Silahkan masuk atau mendaftar\nuntuk dapat menggunakan aplikasi MYSWU',
                         textAlign: TextAlign.center,
-                        style: TextStyle(
-                          fontSize: 15,
-                          color: Colors.black87,
-                        ),
+                        style: TextStyle(fontSize: 15, color: Colors.black87),
                       ),
-                      
-                      const SizedBox(height: 80), 
+
+                      const SizedBox(height: 80),
 
                       // Tombol Masuk
                       SizedBox(
@@ -86,7 +83,8 @@ class WelcomeScreen extends StatelessWidget {
                             Navigator.push(
                               context,
                               MaterialPageRoute(
-                                  builder: (context) => const LoginScreen()),
+                                builder: (context) => const LoginScreen(),
+                              ),
                             );
                           },
                           style: ElevatedButton.styleFrom(
@@ -117,7 +115,8 @@ class WelcomeScreen extends StatelessWidget {
                             Navigator.push(
                               context,
                               MaterialPageRoute(
-                                  builder: (context) => const RegisterScreen()),
+                                builder: (context) => const RegisterScreen(),
+                              ),
                             );
                           },
                           style: ElevatedButton.styleFrom(
@@ -137,7 +136,7 @@ class WelcomeScreen extends StatelessWidget {
                             ),
                           ),
                         ),
-                      ),                     
+                      ),
                     ],
                   ),
                 ),

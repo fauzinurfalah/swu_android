@@ -41,7 +41,7 @@ class _LoginScreenState extends State<LoginScreen> {
     );
 
     print(res);
-    
+
     if (res.containsKey('error')) {
       QuickAlert.show(
         context: context,
@@ -80,7 +80,6 @@ class _LoginScreenState extends State<LoginScreen> {
     });
   }
 
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -94,10 +93,7 @@ class _LoginScreenState extends State<LoginScreen> {
               padding: const EdgeInsets.only(top: 0.0),
               child: Opacity(
                 opacity: 0.2,
-                child: Image.asset(
-                  'assets/images/swu.png',
-                  height: 300, 
-                ),
+                child: Image.asset('assets/images/swu.png', height: 300),
               ),
             ),
           ),
@@ -107,7 +103,11 @@ class _LoginScreenState extends State<LoginScreen> {
               children: [
                 // Header
                 Padding(
-                  padding: const EdgeInsets.only(top: 150.0, left: 24.0, right: 24.0),
+                  padding: const EdgeInsets.only(
+                    top: 150.0,
+                    left: 24.0,
+                    right: 24.0,
+                  ),
                   child: Align(
                     alignment: Alignment.centerLeft,
                     child: Column(
@@ -161,7 +161,7 @@ class _LoginScreenState extends State<LoginScreen> {
                             ),
                           ),
                           const SizedBox(height: 24),
-                          // Input Email 
+                          // Input Email
                           TextFormField(
                             controller: emailController,
                             decoration: InputDecoration(
@@ -186,7 +186,7 @@ class _LoginScreenState extends State<LoginScreen> {
                             },
                           ),
                           const SizedBox(height: 16),
-                          // Input Password 
+                          // Input Password
                           TextFormField(
                             controller: passwordController,
                             obscureText: !_isPasswordVisible,
@@ -223,15 +223,14 @@ class _LoginScreenState extends State<LoginScreen> {
                               return null;
                             },
                           ),
-                          
+
                           const SizedBox(height: 16),
-                          // Tombol Login 
+                          // Tombol Login
                           ElevatedButton(
                             onPressed: isLoading ? null : handleLogin,
                             style: ElevatedButton.styleFrom(
                               backgroundColor: const Color(0xFF6292E1),
-                              padding:
-                                  const EdgeInsets.symmetric(vertical: 16),
+                              padding: const EdgeInsets.symmetric(vertical: 16),
                               shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(30),
                               ),
@@ -265,7 +264,9 @@ class _LoginScreenState extends State<LoginScreen> {
                                   color: Colors.grey,
                                 ),
                                 children: <TextSpan>[
-                                  const TextSpan(text: 'Belum punya akun juga? '),
+                                  const TextSpan(
+                                    text: 'Belum punya akun juga? ',
+                                  ),
                                   TextSpan(
                                     text: 'Bikin akun dulu',
                                     style: const TextStyle(
@@ -275,10 +276,12 @@ class _LoginScreenState extends State<LoginScreen> {
                                     recognizer: TapGestureRecognizer()
                                       ..onTap = () {
                                         Navigator.push(
-                                        context,
-                                        MaterialPageRoute(
-                                            builder: (context) => const RegisterScreen()),
-                                      );
+                                          context,
+                                          MaterialPageRoute(
+                                            builder: (context) =>
+                                                const RegisterScreen(),
+                                          ),
+                                        );
                                       },
                                   ),
                                 ],

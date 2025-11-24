@@ -9,7 +9,7 @@ class DetailBeritaPages extends StatelessWidget {
   String _formatTanggal(String? raw) {
     if (raw == null || raw.isEmpty) return "-";
     try {
-      final dt = DateTime.parse(raw); 
+      final dt = DateTime.parse(raw);
       return DateFormat("EEEE, dd MMMM yyyy", "id_ID").format(dt);
     } catch (_) {
       return raw;
@@ -33,7 +33,11 @@ class DetailBeritaPages extends StatelessWidget {
               alignment: Alignment.centerLeft,
               child: GestureDetector(
                 onTap: () => Navigator.pop(context),
-                child: const Icon(Icons.arrow_back_ios_new, color: Colors.white, size: 20),
+                child: const Icon(
+                  Icons.arrow_back_ios_new,
+                  color: Colors.white,
+                  size: 20,
+                ),
               ),
             ),
           ),
@@ -78,7 +82,11 @@ class DetailBeritaPages extends StatelessWidget {
                               ),
                             ],
                           ),
-                          child: const Icon(Icons.star, color: Colors.white, size: 18),
+                          child: const Icon(
+                            Icons.star,
+                            color: Colors.white,
+                            size: 18,
+                          ),
                         ),
                       ],
                     ),
@@ -97,10 +105,7 @@ class DetailBeritaPages extends StatelessWidget {
 
                     Text(
                       berita["isi"],
-                      style: const TextStyle(
-                        fontSize: 16,
-                        height: 1.5,
-                      ),
+                      style: const TextStyle(fontSize: 16, height: 1.5),
                     ),
                   ],
                 ),

@@ -60,7 +60,7 @@ class _AbsensiScreenState extends State<AbsensiScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Color(0xFF7BA7E2), 
+      backgroundColor: Color(0xFF7BA7E2),
       body: SafeArea(
         child: Column(
           children: [
@@ -73,36 +73,37 @@ class _AbsensiScreenState extends State<AbsensiScreen> {
                   // Tombol back
                   IconButton(
                     icon: const Icon(Icons.arrow_back_ios_new, size: 20),
-                    onPressed: () => 
-                    Navigator.push(
-                      context,MaterialPageRoute(
-                      builder: (context) => const HomeScreen()),
+                    onPressed: () => Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => const HomeScreen(),
+                      ),
                     ),
                   ),
 
                   // Logo bulat kanan atas
-                Container(
-                height: 46,
-                width: 46,
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  shape: BoxShape.circle,
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black26,
-                      blurRadius: 5,
-                      offset: Offset(0, 2),
+                  Container(
+                    height: 46,
+                    width: 46,
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      shape: BoxShape.circle,
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black26,
+                          blurRadius: 5,
+                          offset: Offset(0, 2),
+                        ),
+                      ],
                     ),
-                  ],
-                ),
-                child: Padding(
-                  padding: const EdgeInsets.all(6),
-                  child: Image.asset(
-                    'assets/images/swu.png',
-                    fit: BoxFit.contain,
+                    child: Padding(
+                      padding: const EdgeInsets.all(6),
+                      child: Image.asset(
+                        'assets/images/swu.png',
+                        fit: BoxFit.contain,
+                      ),
+                    ),
                   ),
-                ),
-              ),
                 ],
               ),
             ),

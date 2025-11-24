@@ -107,9 +107,9 @@ class _BiodataState extends State<Biodata> {
         _getMahasiswaData();
       }
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Gagal upload foto: $e")),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text("Gagal upload foto: $e")));
     } finally {
       setState(() => isLoading = false);
     }
@@ -142,9 +142,9 @@ class _BiodataState extends State<Biodata> {
         _getMahasiswaData();
       }
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Gagal upload foto: $e")),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text("Gagal upload foto: $e")));
     } finally {
       setState(() => isLoading = false);
     }
@@ -181,17 +181,20 @@ class _BiodataState extends State<Biodata> {
         _getMahasiswaData();
       }
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Gagal update biodata: $e")),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text("Gagal update biodata: $e")));
     } finally {
       setState(() => isLoading = false);
     }
   }
 
   // ==== UI HELPERS ====
-  Widget _buildEditableField(String label, TextEditingController controller,
-      {TextInputType? keyboardType}) {
+  Widget _buildEditableField(
+    String label,
+    TextEditingController controller, {
+    TextInputType? keyboardType,
+  }) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 18),
       child: Column(
@@ -199,39 +202,24 @@ class _BiodataState extends State<Biodata> {
         children: [
           Text(
             label,
-            style: const TextStyle(
-              fontSize: 12,
-              color: Color(0xFF9E9E9E),
-            ),
+            style: const TextStyle(fontSize: 12, color: Color(0xFF9E9E9E)),
           ),
           TextFormField(
             controller: controller,
             keyboardType: keyboardType,
             textAlign: TextAlign.right,
-            style: const TextStyle(
-              fontSize: 14,
-              color: Color(0xFF212121),
-            ),
+            style: const TextStyle(fontSize: 14, color: Color(0xFF212121)),
             decoration: const InputDecoration(
               isDense: true,
               contentPadding: EdgeInsets.only(top: 4, bottom: 4),
               border: UnderlineInputBorder(
-                borderSide: BorderSide(
-                  color: Color(0xFFE0E0E0),
-                  width: 1,
-                ),
+                borderSide: BorderSide(color: Color(0xFFE0E0E0), width: 1),
               ),
               enabledBorder: UnderlineInputBorder(
-                borderSide: BorderSide(
-                  color: Color(0xFFE0E0E0),
-                  width: 1,
-                ),
+                borderSide: BorderSide(color: Color(0xFFE0E0E0), width: 1),
               ),
               focusedBorder: UnderlineInputBorder(
-                borderSide: BorderSide(
-                  color: Color(0xFF2196F3),
-                  width: 1.4,
-                ),
+                borderSide: BorderSide(color: Color(0xFF2196F3), width: 1.4),
               ),
             ),
             validator: label == "Nama"
@@ -251,26 +239,16 @@ class _BiodataState extends State<Biodata> {
         children: [
           Text(
             label,
-            style: const TextStyle(
-              fontSize: 12,
-              color: Color(0xFF9E9E9E),
-            ),
+            style: const TextStyle(fontSize: 12, color: Color(0xFF9E9E9E)),
           ),
           Align(
             alignment: Alignment.centerRight,
             child: Text(
               value,
-              style: const TextStyle(
-                fontSize: 14,
-                color: Color(0xFF212121),
-              ),
+              style: const TextStyle(fontSize: 14, color: Color(0xFF212121)),
             ),
           ),
-          const Divider(
-            color: Color(0xFFE0E0E0),
-            height: 10,
-            thickness: 1,
-          ),
+          const Divider(color: Color(0xFFE0E0E0), height: 10, thickness: 1),
         ],
       ),
     );
@@ -281,7 +259,7 @@ class _BiodataState extends State<Biodata> {
     final fotoUrl = user?["foto"];
     final nim = user?["nim"] ?? "";
     final noTelp = user?["no_telp"] ?? "";
-    final studi = user?["studi"] ?? ""; 
+    final studi = user?["studi"] ?? "";
 
     return Scaffold(
       backgroundColor: Colors.white,
@@ -289,8 +267,10 @@ class _BiodataState extends State<Biodata> {
         child: user == null
             ? const Center(child: CircularProgressIndicator())
             : SingleChildScrollView(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 24,
+                  vertical: 16,
+                ),
                 child: Form(
                   key: formKey,
                   child: Column(
@@ -307,11 +287,11 @@ class _BiodataState extends State<Biodata> {
                               size: 20,
                               color: Colors.black87,
                             ),
-                            onPressed: () => 
-                            Navigator.push(
+                            onPressed: () => Navigator.push(
                               context,
                               MaterialPageRoute(
-                                builder: (context) => const HomeScreen()),
+                                builder: (context) => const HomeScreen(),
+                              ),
                             ),
                           ),
                           const Spacer(),
@@ -321,9 +301,7 @@ class _BiodataState extends State<Biodata> {
                             decoration: const BoxDecoration(
                               shape: BoxShape.circle,
                               image: DecorationImage(
-                                image: AssetImage(
-                                  "assets/images/swu.png",
-                                ),
+                                image: AssetImage("assets/images/swu.png"),
                                 fit: BoxFit.cover,
                               ),
                             ),
@@ -354,12 +332,13 @@ class _BiodataState extends State<Biodata> {
                                 backgroundImage: kIsWeb && webImage != null
                                     ? MemoryImage(webImage!)
                                     : pickedFile != null
-                                        ? Image.network(pickedFile!.path).image
-                                        : (fotoUrl != null && fotoUrl != "")
-                                            ? NetworkImage(fotoUrl)
-                                            : const AssetImage(
-                                                    "assets/images/default_user.png")
-                                                as ImageProvider,
+                                    ? Image.network(pickedFile!.path).image
+                                    : (fotoUrl != null && fotoUrl != "")
+                                    ? NetworkImage(fotoUrl)
+                                    : const AssetImage(
+                                            "assets/images/default_user.png",
+                                          )
+                                          as ImageProvider,
                               ),
                             ),
                             Positioned(
@@ -377,8 +356,7 @@ class _BiodataState extends State<Biodata> {
                                       BoxShadow(
                                         blurRadius: 8,
                                         offset: const Offset(0, 3),
-                                        color:
-                                            Colors.black.withOpacity(0.18),
+                                        color: Colors.black.withOpacity(0.18),
                                       ),
                                     ],
                                   ),
@@ -395,7 +373,7 @@ class _BiodataState extends State<Biodata> {
                       ),
                       const SizedBox(height: 40),
 
-                      // FIELDS 
+                      // FIELDS
                       _buildEditableField("Nama", namaC),
                       if (nim.isNotEmpty) _buildStaticField("NIM", nim),
                       if (studi.isNotEmpty) _buildStaticField("Studi", studi),
@@ -408,14 +386,12 @@ class _BiodataState extends State<Biodata> {
 
                       const SizedBox(height: 28),
 
-                      // TOMBOL 
+                      // TOMBOL
                       ElevatedButton.icon(
                         onPressed: isLoading ? null : _updateBiodata,
                         icon: const Icon(Icons.save),
                         label: Text(
-                          isLoading
-                              ? "Menyimpan..."
-                              : "Simpan Perubahan",
+                          isLoading ? "Menyimpan..." : "Simpan Perubahan",
                         ),
                         style: ElevatedButton.styleFrom(
                           backgroundColor: const Color(0xFF2196F3),

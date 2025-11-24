@@ -5,6 +5,7 @@ import '../api/api_service.dart';
 import '../widgets/bottom_nav.dart';
 import 'biodata.dart';
 import 'absensi_screen.dart';
+import 'input_krs_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -29,7 +30,9 @@ class _HomeScreenState extends State<HomeScreen> {
       final email = prefs.getString("auth_email");
 
       Dio dio = Dio();
-      dio.options.headers['Authorization'] = 'Bearer $token';
+      if (token != null) {
+        dio.options.headers['Authorization'] = 'Bearer $token';
+      }
       dio.options.headers['Content-type'] = 'application/json';
 
       final response = await dio.post(
@@ -47,7 +50,6 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
-
     return Scaffold(
       backgroundColor: Colors.white,
       bottomNavigationBar: const BottomNav(initialIndex: 0),
@@ -58,7 +60,7 @@ class _HomeScreenState extends State<HomeScreen> {
               _buildBlueHeader(),
               const SizedBox(height: 24),
 
-              // ======= TOMBOL ABSENSI & JADWAL =======
+              // Tombol Absensi & Jadwal
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 16),
                 child: Row(
@@ -119,7 +121,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
               const SizedBox(height: 20),
 
-              // ======= MENU GRID =======
+              // Menu Grid
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 25),
                 child: GridView.count(
@@ -129,7 +131,18 @@ class _HomeScreenState extends State<HomeScreen> {
                   mainAxisSpacing: 25,
                   crossAxisSpacing: 25,
                   children: [
-                    _menuItem('assets/icons/input_krs.png', 'Input KRS'),
+                    _menuItem(
+                      'assets/icons/input_krs.png',
+                      'Input KRS',
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => const InputKrsScreen(),
+                          ),
+                        );
+                      },
+                    ),
                     _menuItem('assets/icons/daftar_nilai.png', 'Daftar Nilai'),
                     _menuItem('assets/icons/khs.png', 'Kartu Hasil Studi'),
                     _menuItem('assets/icons/krs.png', 'KRS'),
@@ -138,6 +151,8 @@ class _HomeScreenState extends State<HomeScreen> {
                   ],
                 ),
               ),
+
+              const SizedBox(height: 24),
             ],
           ),
         ),
@@ -145,7 +160,7 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  // ========= HEADER BIRU ATAS =========
+  // HEADER BIRU ATAS
   Widget _buildBlueHeader() {
     final hasFoto =
         (user?["foto"] != null &&
@@ -209,9 +224,7 @@ class _HomeScreenState extends State<HomeScreen> {
             onTap: () {
               Navigator.push(
                 context,
-                MaterialPageRoute(
-                  builder: (context) => const Biodata(),
-                ),
+                MaterialPageRoute(builder: (context) => const Biodata()),
               );
             },
             child: Container(
@@ -231,14 +244,12 @@ class _HomeScreenState extends State<HomeScreen> {
               child: Row(
                 children: [
                   CircleAvatar(
-                          radius: 35,
-                          backgroundImage: hasFoto
-                              ? NetworkImage(user!["foto"])
-                              : const AssetImage(
-                                      "assets/images/default_user.png",
-                                    )
-                                    as ImageProvider,
-                        ),
+                    radius: 35,
+                    backgroundImage: hasFoto
+                        ? NetworkImage(user!["foto"])
+                        : const AssetImage("assets/images/default_user.png")
+                              as ImageProvider,
+                  ),
                   const SizedBox(width: 12),
                   Expanded(
                     child: Column(
@@ -299,34 +310,38 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  // ========= MENU GRID ITEM (SVG + BULAT HITAM) =========
-  Widget _menuItem(String assetPath, String label) {
-  return Column(
-    mainAxisSize: MainAxisSize.min,
-    children: [
-      Container(
-        height: 70,
-        width: 70,
-        decoration: const BoxDecoration(
-          color: Colors.black,
-          shape: BoxShape.circle,
-        ),
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Image.asset(
-            assetPath,
-            color: Colors.white, // opsional, buat monokrom
-            fit: BoxFit.contain,
+  // MENU GRID ITEM
+  Widget _menuItem(String assetPath, String label, {VoidCallback? onTap}) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(12),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            height: 70,
+            width: 70,
+            decoration: const BoxDecoration(
+              color: Colors.black,
+              shape: BoxShape.circle,
+            ),
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Image.asset(
+                assetPath,
+                color: Colors.white,
+                fit: BoxFit.contain,
+              ),
+            ),
           ),
-        ),
+          const SizedBox(height: 8),
+          Text(
+            label,
+            textAlign: TextAlign.center,
+            style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500),
+          ),
+        ],
       ),
-      const SizedBox(height: 8),
-      Text(
-        label,
-        textAlign: TextAlign.center,
-        style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500),
-      ),
-    ],
     );
   }
 }
