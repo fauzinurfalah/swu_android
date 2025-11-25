@@ -21,7 +21,7 @@ class DetailBeritaPages extends StatelessWidget {
     final String tanggal = _formatTanggal(berita["createdAt"]);
 
     return Scaffold(
-      backgroundColor: Colors.blue.shade700,
+      backgroundColor: const Color(0xFF7BA7E2),
       body: Column(
         children: [
           // ===== HEADER BIRU =====
