@@ -133,7 +133,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   children: [
                     _menuItem(
                       'assets/icons/input_krs.png',
-                      'Input KRS',
+                      'KRS',
                       onTap: () {
                         Navigator.push(
                           context,
@@ -145,7 +145,6 @@ class _HomeScreenState extends State<HomeScreen> {
                     ),
                     _menuItem('assets/icons/daftar_nilai.png', 'Daftar Nilai'),
                     _menuItem('assets/icons/khs.png', 'Kartu Hasil Studi'),
-                    _menuItem('assets/icons/krs.png', 'KRS'),
                     _menuItem('assets/icons/sp.png', 'SP'),
                     const SizedBox(),
                   ],

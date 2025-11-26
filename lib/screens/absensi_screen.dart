@@ -33,15 +33,6 @@ class _AbsensiScreenState extends State<AbsensiScreen> {
       "jam": "09:00 - 11.00 WIB",
       "warna": Colors.grey,
     },
-    {
-      "kode": "#102",
-      "nama": "Basis Data",
-      "dosen": "Mr. Data, M.Kom",
-      "pertemuan": "Pertemuan ke-5",
-      "ruang": "Lab. 3.1",
-      "jam": "13:00 - 15.00 WIB",
-      "warna": Colors.blueGrey,
-    },
   ];
 
   @override

@@ -1,4 +1,3 @@
-// ...existing code...
 import 'package:flutter/material.dart';
 import 'package:dio/dio.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -23,6 +22,9 @@ class _InputKrsScreenState extends State<InputKrsScreen> {
 
   List<dynamic> daftarKrs = [];
 
+  // minimal semester yang boleh diinput (diisi dari prefs saat load atau dari user profile)
+  int _minSemester = 1;
+
   @override
   void initState() {
     super.initState();
@@ -30,10 +32,25 @@ class _InputKrsScreenState extends State<InputKrsScreen> {
   }
 
   Future<void> _loadInitialData() async {
+    // baca semester yang tersimpan dari login dulu (jika ada)
+    final prefs = await SharedPreferences.getInstance();
+    final stored = prefs.getString('semester');
+    if (stored != null) {
+      final v = int.tryParse(stored);
+      if (v != null) _minSemester = v;
+    }
+
     await _getMahasiswaData();
     if (user != null) {
+      // pastikan min semester diperbarui dari profile yang baru di-fetch
+      final s = user?['semester'];
+      final v = s is int ? s : int.tryParse(s?.toString() ?? '');
+      if (v != null) _minSemester = v;
+      await _getDaftarKrs();
+    } else {
       await _getDaftarKrs();
     }
+
     setState(() => isFetching = false);
   }
 
@@ -54,9 +71,13 @@ class _InputKrsScreenState extends State<InputKrsScreen> {
 
       setState(() {
         user = response.data['data'];
-        // simpan semester jika ada
+        // simpan semester jika ada dan update min semester
         if (user?['semester'] != null) {
           prefs.setString('semester', user!['semester'].toString());
+          final v = user!['semester'] is int
+              ? user!['semester'] as int
+              : int.tryParse(user!['semester'].toString());
+          if (v != null) _minSemester = v;
         }
       });
     } catch (e) {
@@ -168,76 +189,9 @@ class _InputKrsScreenState extends State<InputKrsScreen> {
     }
   }
 
-  Future<void> _hapusKrs(int idKrs) async {
-    final confirm = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Hapus KRS'),
-        content: const Text(
-          'Yakin ingin menghapus KRS ini? Semua mata kuliah pada KRS akan hilang.',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(ctx).pop(false),
-            child: const Text('Batal'),
-          ),
-          TextButton(
-            onPressed: () => Navigator.of(ctx).pop(true),
-            child: const Text('Hapus'),
-          ),
-        ],
-      ),
-    );
-
-    if (confirm != true) return;
-
-    try {
-      final prefs = await SharedPreferences.getInstance();
-      final token = prefs.getString('auth_token');
-
-      final dio = Dio();
-      if (token != null) dio.options.headers['Authorization'] = 'Bearer $token';
-      dio.options.headers['Content-type'] = 'application/json';
-      dio.options.validateStatus = (_) => true;
-
-      // coba endpoint umum: krs/hapus-krs, fallback ke krs/hapus
-      Response? res = await dio.delete(
-        "${ApiService.baseUrl}krs/hapus-krs?id=$idKrs",
-      );
-      if (!(res.statusCode == 200 || res.statusCode == 201)) {
-        res = await dio.delete("${ApiService.baseUrl}krs/hapus?id=$idKrs");
-      }
-
-      final msg = (res.data is Map)
-          ? (res.data['message'] ?? res.data['msg'] ?? res.data.toString())
-          : res.data.toString();
-
-      if (res.statusCode == 200 || res.statusCode == 201) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(msg), backgroundColor: Colors.green),
-        );
-        await _getDaftarKrs();
-      } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Gagal hapus KRS: $msg'),
-            backgroundColor: Colors.red,
-          ),
-        );
-      }
-    } catch (e) {
-      debugPrint('hapusKrs error: $e');
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Gagal menghapus KRS'),
-          backgroundColor: Colors.red,
-        ),
-      );
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
+    final minSemester = _minSemester;
     return Scaffold(
       backgroundColor: const Color(0xFF7BA7E2),
       body: SafeArea(
@@ -339,10 +293,19 @@ class _InputKrsScreenState extends State<InputKrsScreen> {
                                       ),
                                       isDense: true,
                                     ),
-                                    validator: (value) =>
-                                        value == null || value.isEmpty
-                                        ? "Semester wajib diisi"
-                                        : null,
+                                    keyboardType: TextInputType.number,
+                                    validator: (value) {
+                                      if (value == null || value.isEmpty)
+                                        return "Semester wajib diisi";
+                                      final v = int.tryParse(value);
+                                      if (v == null)
+                                        return "Masukkan nomor semester yang valid";
+                                      if (v < minSemester)
+                                        return "Semester minimal adalah $minSemester";
+                                      if (v > 16)
+                                        return "Maksimal semester adalah 16";
+                                      return null;
+                                    },
                                   ),
                                 ),
                                 const SizedBox(width: 12),
@@ -447,24 +410,10 @@ class _InputKrsScreenState extends State<InputKrsScreen> {
                                               ),
                                             ).then((_) => _getDaftarKrs());
                                           },
-                                          trailing: Row(
-                                            mainAxisSize: MainAxisSize.min,
-                                            children: [
-                                              IconButton(
-                                                icon: const Icon(
-                                                  Icons.delete,
-                                                  color: Colors.red,
-                                                ),
-                                                tooltip: 'Hapus KRS',
-                                                onPressed: () =>
-                                                    _hapusKrs(krs['id']),
-                                              ),
-                                              const SizedBox(width: 6),
-                                              const Icon(
-                                                Icons.arrow_forward_ios,
-                                                size: 18,
-                                              ),
-                                            ],
+                                          // hapus icon delete sesuai permintaan; hanya panah lanjut
+                                          trailing: const Icon(
+                                            Icons.arrow_forward_ios,
+                                            size: 18,
                                           ),
                                         ),
                                       );
@@ -481,4 +430,3 @@ class _InputKrsScreenState extends State<InputKrsScreen> {
     );
   }
 }
-// ...existing code...

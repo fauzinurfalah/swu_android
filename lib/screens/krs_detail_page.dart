@@ -21,17 +21,52 @@ class KrsDetailPage extends StatefulWidget {
 
 class _KrsDetailPageState extends State<KrsDetailPage> {
   List<dynamic> daftarMatkul = [];
+  Map<String, dynamic>? user;
   bool isLoading = true;
   final int maxSks = 24;
 
   @override
   void initState() {
     super.initState();
-    _getDetailKrs();
+    _loadAll();
+  }
+
+  Future<void> _loadAll() async {
+    setState(() => isLoading = true);
+    await Future.wait([_loadUser(), _getDetailKrs()]);
+    setState(() => isLoading = false);
+  }
+
+  Future<void> _loadUser() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final token = prefs.getString('auth_token');
+      final email = prefs.getString('auth_email');
+
+      if (email == null) return;
+
+      final dio = Dio();
+      if (token != null) dio.options.headers['Authorization'] = 'Bearer $token';
+      dio.options.headers['Content-type'] = 'application/json';
+      dio.options.validateStatus = (_) => true;
+
+      final resp = await dio.post(
+        "${ApiService.baseUrl}mahasiswa/detail-mahasiswa",
+        data: {"email": email},
+      );
+      if (resp.statusCode == 200) {
+        setState(
+          () => user = (resp.data['data'] is Map)
+              ? Map<String, dynamic>.from(resp.data['data'])
+              : null,
+        );
+      }
+    } catch (_) {
+      // ignore, optional user photo
+    }
   }
 
   Future<void> _getDetailKrs() async {
-    setState(() => isLoading = true);
     try {
       final prefs = await SharedPreferences.getInstance();
       final token = prefs.getString('auth_token');
@@ -47,12 +82,12 @@ class _KrsDetailPageState extends State<KrsDetailPage> {
       if (response.statusCode == 200) {
         setState(() => daftarMatkul = response.data['data'] ?? []);
       } else {
+        setState(() => daftarMatkul = []);
         final msg = (response.data is Map)
             ? (response.data['message'] ??
                   response.data['msg'] ??
                   response.data.toString())
             : response.data.toString();
-        setState(() => daftarMatkul = []);
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Gagal memuat detail KRS: $msg'),
@@ -68,8 +103,7 @@ class _KrsDetailPageState extends State<KrsDetailPage> {
           backgroundColor: Colors.red,
         ),
       );
-    } finally {
-      setState(() => isLoading = false);
+      setState(() => daftarMatkul = []);
     }
   }
 
@@ -86,10 +120,9 @@ class _KrsDetailPageState extends State<KrsDetailPage> {
   }
 
   Future<void> _hapusMatakuliah(int idKrsDetail) async {
+    final dio = Dio();
     final prefs = await SharedPreferences.getInstance();
     final token = prefs.getString('auth_token');
-
-    final dio = Dio();
     if (token != null) dio.options.headers['Authorization'] = 'Bearer $token';
     dio.options.headers['Content-type'] = 'application/json';
     dio.options.validateStatus = (_) => true;
@@ -128,11 +161,10 @@ class _KrsDetailPageState extends State<KrsDetailPage> {
     }
   }
 
-  // build sets to prevent duplicate additions
+  // helper sets to prevent duplicate adds
   Set<int> _existingJadwalIds() {
-    final Set<int> s = {};
+    final s = <int>{};
     for (final m in daftarMatkul) {
-      int? jid;
       try {
         final candidates = [
           'id_jadwal',
@@ -142,18 +174,18 @@ class _KrsDetailPageState extends State<KrsDetailPage> {
         ];
         for (final k in candidates) {
           if (m[k] != null) {
-            jid = m[k] is int ? m[k] : int.tryParse(m[k].toString());
-            if (jid != null) break;
+            final jid = m[k] is int ? m[k] : int.tryParse(m[k].toString());
+            if (jid != null) s.add(jid);
+            break;
           }
         }
       } catch (_) {}
-      if (jid != null) s.add(jid);
     }
     return s;
   }
 
   Set<String> _existingNames() {
-    final Set<String> s = {};
+    final s = <String>{};
     for (final m in daftarMatkul) {
       final name = (m['nama_matakuliah'] ?? m['nama'] ?? '')
           .toString()
@@ -210,6 +242,128 @@ class _KrsDetailPageState extends State<KrsDetailPage> {
     );
   }
 
+  Widget _buildHeaderContent() {
+    final foto =
+        (user != null && (user!['foto']?.toString().isNotEmpty ?? false))
+        ? user!['foto'].toString()
+        : null;
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 18),
+      child: Column(
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      "Semester ${widget.semester}",
+                      style: const TextStyle(
+                        fontSize: 30,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(height: 6),
+                    Text(
+                      "Tahun ${widget.tahunAjaran}",
+                      style: const TextStyle(
+                        color: Colors.black54,
+                        fontSize: 15,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              CircleAvatar(
+                radius: 36,
+                backgroundImage: foto != null
+                    ? NetworkImage(foto) as ImageProvider
+                    : const AssetImage('assets/images/default_user.png'),
+              ),
+            ],
+          ),
+          const SizedBox(height: 14),
+          Row(
+            children: [
+              const Expanded(child: Divider()),
+              const SizedBox(width: 8),
+              Text(
+                "$currentTotalSks / $maxSks SKS",
+                style: const TextStyle(fontWeight: FontWeight.w700),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildCourseItem(Map<String, dynamic> mk) {
+    final jumlah = mk['jumlah_sks'] is int
+        ? mk['jumlah_sks']
+        : int.tryParse(mk['jumlah_sks']?.toString() ?? '0') ?? 0;
+    final hari = mk['nama_hari'] ?? mk['hari'] ?? '-';
+    final jamMulai = mk['jam_mulai'] ?? '-';
+    final jamSelesai = mk['jam_selesai'] ?? '-';
+    final dosen = mk['dosen'] ?? '-';
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: const [
+          BoxShadow(
+            color: Color(0x11000000),
+            blurRadius: 8,
+            offset: Offset(0, 4),
+          ),
+        ],
+      ),
+      child: ListTile(
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: 16,
+          vertical: 12,
+        ),
+        leading: Container(
+          decoration: BoxDecoration(
+            color: Colors.blue.shade50,
+            borderRadius: BorderRadius.circular(8),
+          ),
+          padding: const EdgeInsets.all(8),
+          child: const Icon(Icons.menu_book_rounded, color: Colors.blue),
+        ),
+        title: Text(
+          mk['nama_matakuliah'] ?? mk['nama'] ?? '-',
+          style: const TextStyle(fontWeight: FontWeight.w600),
+        ),
+        subtitle: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const SizedBox(height: 6),
+            Text("SKS: $jumlah  •  Dosen: $dosen"),
+            const SizedBox(height: 4),
+            Text(
+              "Jadwal: $hari, $jamMulai - $jamSelesai",
+              style: const TextStyle(color: Colors.black54),
+            ),
+          ],
+        ),
+        trailing: Container(
+          width: 40,
+          height: 40,
+          decoration: BoxDecoration(
+            color: Colors.red.shade50,
+            borderRadius: BorderRadius.circular(10),
+          ),
+          child: IconButton(
+            icon: const Icon(Icons.delete, color: Colors.red),
+            onPressed: () => _confirmDelete(mk['id']),
+          ),
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -217,7 +371,7 @@ class _KrsDetailPageState extends State<KrsDetailPage> {
       body: SafeArea(
         child: Column(
           children: [
-            // Header biru dengan back dan logo (mirip InputKRS)
+            // header bar with back & title & small logo
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
               color: const Color(0xFF7BA7E2),
@@ -231,10 +385,10 @@ class _KrsDetailPageState extends State<KrsDetailPage> {
                     onPressed: () => Navigator.of(context).pop(),
                   ),
                   const SizedBox(width: 6),
-                  Expanded(
+                  const Expanded(
                     child: Text(
-                      'Detail KRS - Semester ${widget.semester}',
-                      style: const TextStyle(
+                      'Detail KRS',
+                      style: TextStyle(
                         color: Colors.white,
                         fontSize: 18,
                         fontWeight: FontWeight.bold,
@@ -242,15 +396,15 @@ class _KrsDetailPageState extends State<KrsDetailPage> {
                     ),
                   ),
                   Container(
-                    height: 46,
-                    width: 46,
+                    height: 40,
+                    width: 40,
                     decoration: BoxDecoration(
                       color: Colors.white,
                       shape: BoxShape.circle,
-                      boxShadow: [
+                      boxShadow: const [
                         BoxShadow(
                           color: Colors.black26,
-                          blurRadius: 5,
+                          blurRadius: 4,
                           offset: Offset(0, 2),
                         ),
                       ],
@@ -267,114 +421,46 @@ class _KrsDetailPageState extends State<KrsDetailPage> {
               ),
             ),
 
-            // White rounded content area
+            // single white container for header + list to keep continuous background
             Expanded(
               child: Container(
                 width: double.infinity,
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 16,
-                  vertical: 16,
-                ),
                 decoration: const BoxDecoration(
                   color: Colors.white,
                   borderRadius: BorderRadius.only(
-                    topLeft: Radius.circular(28),
-                    topRight: Radius.circular(28),
+                    topLeft: Radius.circular(24),
+                    topRight: Radius.circular(24),
                   ),
                 ),
                 child: isLoading
                     ? const Center(child: CircularProgressIndicator())
                     : Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          // info bar
-                          Padding(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 4,
-                              vertical: 6,
-                            ),
-                            child: Row(
-                              children: [
-                                Expanded(
-                                  child: Text(
-                                    "Semester: ${widget.semester} | Tahun: ${widget.tahunAjaran}",
-                                    style: const TextStyle(
-                                      fontSize: 14,
-                                      fontWeight: FontWeight.w600,
-                                    ),
-                                  ),
-                                ),
-                                Text(
-                                  "$currentTotalSks / $maxSks SKS",
-                                  style: const TextStyle(
-                                    fontSize: 14,
-                                    fontWeight: FontWeight.w700,
-                                    color: Colors.black87,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                          const SizedBox(height: 8),
-                          // list matakuliah
+                          // header content (inside same white area)
+                          _buildHeaderContent(),
+                          // list
                           Expanded(
-                            child: daftarMatkul.isEmpty
-                                ? const Center(
-                                    child: Text(
-                                      "Belum ada matakuliah yang dipilih.",
-                                      textAlign: TextAlign.center,
+                            child: Padding(
+                              padding: const EdgeInsets.fromLTRB(12, 8, 12, 16),
+                              child: daftarMatkul.isEmpty
+                                  ? const Center(
+                                      child: Text(
+                                        "Belum ada matakuliah yang dipilih.",
+                                        textAlign: TextAlign.center,
+                                      ),
+                                    )
+                                  : ListView.separated(
+                                      itemCount: daftarMatkul.length,
+                                      separatorBuilder: (_, __) =>
+                                          const SizedBox(height: 12),
+                                      itemBuilder: (context, idx) {
+                                        final mk = Map<String, dynamic>.from(
+                                          daftarMatkul[idx],
+                                        );
+                                        return _buildCourseItem(mk);
+                                      },
                                     ),
-                                  )
-                                : ListView.builder(
-                                    padding: const EdgeInsets.only(bottom: 12),
-                                    itemCount: daftarMatkul.length,
-                                    itemBuilder: (context, index) {
-                                      final mk = daftarMatkul[index];
-                                      final jumlah = mk['jumlah_sks'] is int
-                                          ? mk['jumlah_sks']
-                                          : int.tryParse(
-                                                  mk['jumlah_sks']
-                                                          ?.toString() ??
-                                                      '0',
-                                                ) ??
-                                                0;
-                                      return Card(
-                                        elevation: 2,
-                                        margin: const EdgeInsets.symmetric(
-                                          vertical: 6,
-                                        ),
-                                        shape: RoundedRectangleBorder(
-                                          borderRadius: BorderRadius.circular(
-                                            10,
-                                          ),
-                                        ),
-                                        child: ListTile(
-                                          leading: const Icon(
-                                            Icons.menu_book_rounded,
-                                            color: Colors.blue,
-                                          ),
-                                          title: Text(
-                                            mk['nama_matakuliah'] ??
-                                                mk['nama'] ??
-                                                '-',
-                                          ),
-                                          subtitle: Text(
-                                            "SKS: $jumlah | Dosen: ${mk['dosen'] ?? '-'}\nJadwal: ${mk['nama_hari'] ?? '-'}, ${mk['jam_mulai'] ?? '-'} - ${mk['jam_selesai'] ?? '-'}",
-                                          ),
-                                          isThreeLine: true,
-                                          trailing: IconButton(
-                                            icon: const Icon(
-                                              Icons.delete,
-                                              color: Colors.red,
-                                            ),
-                                            tooltip: "Hapus Matakuliah",
-                                            onPressed: () =>
-                                                _confirmDelete(mk['id']),
-                                          ),
-                                        ),
-                                      );
-                                    },
-                                  ),
+                            ),
                           ),
                         ],
                       ),
@@ -388,7 +474,7 @@ class _KrsDetailPageState extends State<KrsDetailPage> {
         backgroundColor: currentTotalSks >= maxSks
             ? Colors.grey
             : const Color(0xFF42A5F5),
-        child: const Icon(Icons.add),
+        child: const Icon(Icons.add, color: Colors.white),
       ),
     );
   }
@@ -469,10 +555,9 @@ class _TambahMatkulSheetState extends State<TambahMatkulSheet> {
 
     setState(() => adding = true);
     try {
+      final dio = Dio();
       final prefs = await SharedPreferences.getInstance();
       final token = prefs.getString('auth_token');
-
-      final dio = Dio();
       if (token != null) dio.options.headers['Authorization'] = 'Bearer $token';
       dio.options.headers['Content-type'] = 'application/json';
       dio.options.validateStatus = (_) => true;
