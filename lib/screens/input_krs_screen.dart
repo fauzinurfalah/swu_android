@@ -248,7 +248,7 @@ class _InputKrsScreenState extends State<InputKrsScreen> {
               ),
             ),
 
-            // Area putih melengkung
+            // Area putih melengkung oke gas
             Expanded(
               child: Container(
                 width: double.infinity,
