@@ -46,12 +46,134 @@ class _JadwalPageState extends State<JadwalPage> {
   DateTime? _selectedDay;
   bool _loading = true;
   String _error = '';
+  List<dynamic> _daftarKrs = [];
+  int? _selectedKrsId;
+  Set<int> _filterJadwalIds = {};
+  Set<String> _filterNames = {};
 
   @override
   void initState() {
     super.initState();
     _selectedDay = _focusedDay;
-    _fetchAndBuildEventsForMonth(_focusedDay);
+    // load user's KRS list then load filter for default selection and events
+    _initKrsAndEvents();
+  }
+
+  Future<void> _initKrsAndEvents() async {
+    await _loadDaftarKrs();
+    if (_selectedKrsId != null) {
+      await _loadKrsDetailToFilter(_selectedKrsId!);
+    }
+    await _fetchAndBuildEventsForMonth(_focusedDay);
+  }
+
+  Future<void> _loadDaftarKrs() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final token = prefs.getString('auth_token');
+      final email = prefs.getString('auth_email');
+
+      final dio = Dio();
+      if (token != null) dio.options.headers['Authorization'] = 'Bearer $token';
+      dio.options.headers['Content-type'] = 'application/json';
+      dio.options.validateStatus = (_) => true;
+
+      if (email == null) {
+        setState(() => _daftarKrs = []);
+        return;
+      }
+
+      final resp = await dio.post(
+        '${ApiService.baseUrl}mahasiswa/detail-mahasiswa',
+        data: {'email': email},
+      );
+      if (resp.statusCode != 200) {
+        setState(() => _daftarKrs = []);
+        return;
+      }
+      final nim = resp.data['data']?['nim']?.toString();
+      if (nim == null) {
+        setState(() => _daftarKrs = []);
+        return;
+      }
+
+      final response = await dio.get(
+        '${ApiService.baseUrl}krs/daftar-krs?id_mahasiswa=$nim',
+      );
+      if (response.statusCode == 200) {
+        final List<dynamic> list = response.data['data'] ?? [];
+        setState(() {
+          _daftarKrs = list;
+          if (list.isNotEmpty) {
+            // default select first (you can choose other policy)
+            _selectedKrsId = list.first['id'];
+          }
+        });
+      } else {
+        setState(() => _daftarKrs = []);
+      }
+    } catch (e) {
+      setState(() => _daftarKrs = []);
+    }
+  }
+
+  Future<void> _loadKrsDetailToFilter(int idKrs) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final token = prefs.getString('auth_token');
+
+      final dio = Dio();
+      if (token != null) dio.options.headers['Authorization'] = 'Bearer $token';
+      dio.options.headers['Content-type'] = 'application/json';
+      dio.options.validateStatus = (_) => true;
+
+      final resp = await dio.get(
+        '${ApiService.baseUrl}krs/detail-krs?id_krs=$idKrs',
+      );
+      if (resp.statusCode != 200) {
+        setState(() {
+          _filterJadwalIds = {};
+          _filterNames = {};
+        });
+        return;
+      }
+
+      final List<dynamic> daftarMatkul = resp.data['data'] ?? [];
+      final ids = <int>{};
+      final names = <String>{};
+      for (final m in daftarMatkul) {
+        try {
+          final candidates = [
+            'id_jadwal',
+            'jadwal_id',
+            'id_jadwal_krs',
+            'id_jadwal',
+            'id',
+          ];
+          for (final k in candidates) {
+            if (m[k] != null) {
+              final jid = m[k] is int ? m[k] : int.tryParse(m[k].toString());
+              if (jid != null) ids.add(jid);
+              break;
+            }
+          }
+        } catch (_) {}
+        final name = (m['nama_matakuliah'] ?? m['nama'] ?? '')
+            .toString()
+            .trim()
+            .toLowerCase();
+        if (name.isNotEmpty) names.add(name);
+      }
+      setState(() {
+        _filterJadwalIds = ids;
+        _filterNames = names;
+      });
+    } catch (e) {
+      setState(() {
+        _filterJadwalIds = {};
+        _filterNames = {};
+      });
+    }
   }
 
   /// Utility: normalize date (strip time)
@@ -162,12 +284,9 @@ class _JadwalPageState extends State<JadwalPage> {
       final List<dynamic> jadwals =
           response.data['jadwals'] ?? response.data['data'] ?? [];
 
-      // Load user's KRS info to filter jadwal only for courses taken
-      final userCourseSets = await _getUserKrsCourseSets();
-      final Set<int> existingJadwalIds =
-          (userCourseSets['ids'] as Set<int>?) ?? <int>{};
-      final Set<String> existingNames =
-          (userCourseSets['names'] as Set<String>?) ?? <String>{};
+      // Use filter sets loaded from selected KRS (if any)
+      final Set<int> existingJadwalIds = _filterJadwalIds;
+      final Set<String> existingNames = _filterNames;
 
       // Build events map for the visible month range
       final lastDayOfMonth = DateTime(monthFocus.year, monthFocus.month + 1, 0);
@@ -235,101 +354,7 @@ class _JadwalPageState extends State<JadwalPage> {
   }
 
   // Helper: fetch user's KRS and return two sets: existing jadwal ids and lowercased mata kuliah names
-  Future<Map<String, dynamic>> _getUserKrsCourseSets() async {
-    final prefs = await SharedPreferences.getInstance();
-    final token = prefs.getString('auth_token');
-    final email = prefs.getString('auth_email');
-
-    final dio = Dio();
-    if (token != null) dio.options.headers['Authorization'] = 'Bearer $token';
-    dio.options.headers['Content-type'] = 'application/json';
-    dio.options.validateStatus = (_) => true;
-
-    try {
-      if (email == null) return {'ids': <int>{}, 'names': <String>{}};
-
-      // get mahasiswa to obtain nim
-      final respMahasiswa = await dio.post(
-        '${ApiService.baseUrl}mahasiswa/detail-mahasiswa',
-        data: {'email': email},
-      );
-      if (respMahasiswa.statusCode != 200)
-        return {'ids': <int>{}, 'names': <String>{}};
-      final nim = respMahasiswa.data['data']?['nim']?.toString();
-      if (nim == null) return {'ids': <int>{}, 'names': <String>{}};
-
-      // get daftar KRS for mahasiswa
-      final respKrs = await dio.get(
-        '${ApiService.baseUrl}krs/daftar-krs?id_mahasiswa=$nim',
-      );
-      if (respKrs.statusCode != 200)
-        return {'ids': <int>{}, 'names': <String>{}};
-      final List<dynamic> daftarKrs = respKrs.data['data'] ?? [];
-      if (daftarKrs.isEmpty) return {'ids': <int>{}, 'names': <String>{}};
-
-      // pick the most recent KRS: prefer highest semester, fallback to largest id
-      dynamic chosen = daftarKrs.first;
-      try {
-        chosen = daftarKrs.reduce((a, b) {
-          final ase = a['semester'];
-          final bse = b['semester'];
-          final ai = ase is int
-              ? ase
-              : int.tryParse(ase?.toString() ?? '0') ?? 0;
-          final bi = bse is int
-              ? bse
-              : int.tryParse(bse?.toString() ?? '0') ?? 0;
-          if (bi != ai) return bi > ai ? b : a;
-          final aid = a['id'] is int
-              ? a['id']
-              : int.tryParse(a['id']?.toString() ?? '0') ?? 0;
-          final bid = b['id'] is int
-              ? b['id']
-              : int.tryParse(b['id']?.toString() ?? '0') ?? 0;
-          return bid > aid ? b : a;
-        });
-      } catch (_) {}
-
-      final idKrs = chosen['id'];
-      if (idKrs == null) return {'ids': <int>{}, 'names': <String>{}};
-
-      final respDetail = await dio.get(
-        '${ApiService.baseUrl}krs/detail-krs?id_krs=$idKrs',
-      );
-      if (respDetail.statusCode != 200)
-        return {'ids': <int>{}, 'names': <String>{}};
-      final List<dynamic> daftarMatkul = respDetail.data['data'] ?? [];
-
-      final Set<int> ids = {};
-      final Set<String> names = {};
-      for (final m in daftarMatkul) {
-        try {
-          final candidates = [
-            'id_jadwal',
-            'jadwal_id',
-            'id_jadwal_krs',
-            'id_jadwal',
-          ];
-          for (final k in candidates) {
-            if (m[k] != null) {
-              final jid = m[k] is int ? m[k] : int.tryParse(m[k].toString());
-              if (jid != null) ids.add(jid);
-              break;
-            }
-          }
-        } catch (_) {}
-        final name = (m['nama_matakuliah'] ?? m['nama'] ?? '')
-            .toString()
-            .trim()
-            .toLowerCase();
-        if (name.isNotEmpty) names.add(name);
-      }
-
-      return {'ids': ids, 'names': names};
-    } catch (_) {
-      return {'ids': <int>{}, 'names': <String>{}};
-    }
-  }
+  // NOTE: older helper to auto-select KRS is removed — dropdown + explicit loaders are used instead.
 
   List<Event> _getEventsForDay(DateTime day) {
     return _events[_dateOnly(day)] ?? [];
@@ -368,8 +393,60 @@ class _JadwalPageState extends State<JadwalPage> {
               padding: const EdgeInsets.symmetric(horizontal: 16.0),
               child: Column(
                 children: [
+                  // Dropdown KRS (if user has any)
+                  if (_daftarKrs.isNotEmpty)
+                    // Styled dropdown: blue background, white text, padding, rounded
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 6.0),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 6,
+                        ),
+                        decoration: BoxDecoration(
+                          color: Colors.blue, // dominant blue
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: DropdownButton<int>(
+                          isExpanded: true,
+                          value: _selectedKrsId,
+                          dropdownColor: Colors.blue.shade700,
+                          underline: const SizedBox.shrink(),
+                          iconEnabledColor: Colors.white,
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.w600,
+                          ),
+                          items: _daftarKrs.map((krs) {
+                            final id = krs['id'] as int?;
+                            final semester = krs['semester']?.toString() ?? '-';
+                            final tahun =
+                                (krs['tahun_ajaran'] ?? krs['tahun'])
+                                    ?.toString() ??
+                                '-';
+                            return DropdownMenuItem<int>(
+                              value: id,
+                              child: Text(
+                                'Semester $semester • $tahun',
+                                style: const TextStyle(color: Colors.white),
+                              ),
+                            );
+                          }).toList(),
+                          onChanged: (val) async {
+                            if (val == null) return;
+                            setState(() {
+                              _selectedKrsId = val;
+                              _loading = true;
+                            });
+                            await _loadKrsDetailToFilter(val);
+                            await _fetchAndBuildEventsForMonth(_focusedDay);
+                          },
+                        ),
+                      ),
+                    ),
+
                   // Title "Oktober, 2025" like sample
-                  SizedBox(height: 4),
+                  const SizedBox(height: 4),
                   Text(
                     monthTitle,
                     style: const TextStyle(
@@ -390,13 +467,30 @@ class _JadwalPageState extends State<JadwalPage> {
                     calendarStyle: CalendarStyle(
                       outsideDaysVisible: true,
                       markersMaxCount: 1,
+                      // Make today's and selected day's circle transparent (no fill)
+                      // but keep the outline border color. Also set the text color
+                      // to match the outline so it visually "inverts" on selection/today.
                       todayDecoration: BoxDecoration(
                         shape: BoxShape.circle,
-                        border: Border.all(color: Colors.grey.shade400),
+                        color: const Color.fromARGB(255, 131, 174, 255),
+                        border: Border.all(
+                          color: const Color.fromARGB(255, 156, 196, 255),
+                        ),
                       ),
                       selectedDecoration: BoxDecoration(
                         shape: BoxShape.circle,
-                        border: Border.all(color: Colors.blue),
+                        color: Colors.transparent,
+                        border: Border.all(
+                          color: const Color.fromARGB(255, 131, 174, 255),
+                        ),
+                      ),
+                      todayTextStyle: const TextStyle(
+                        color: Color.fromARGB(255, 255, 255, 255),
+                        fontWeight: FontWeight.bold,
+                      ),
+                      selectedTextStyle: const TextStyle(
+                        color: Color.fromARGB(255, 0, 0, 0),
+                        fontWeight: FontWeight.bold,
                       ),
                     ),
                     daysOfWeekStyle: DaysOfWeekStyle(
@@ -448,7 +542,7 @@ class _JadwalPageState extends State<JadwalPage> {
                             label,
                             style: TextStyle(
                               fontSize: 12,
-                              color: Colors.grey[700],
+                              color: const Color.fromARGB(255, 5, 1, 1),
                             ),
                           ),
                         );
@@ -557,13 +651,6 @@ class _JadwalPageState extends State<JadwalPage> {
       decoration: BoxDecoration(
         color: Color(0xFF8FB1F3), // soft blue similar to sample
         borderRadius: BorderRadius.circular(12),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.grey.shade200,
-            blurRadius: 4,
-            offset: Offset(0, 2),
-          ),
-        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
