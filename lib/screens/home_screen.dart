@@ -5,6 +5,7 @@ import '../api/api_service.dart';
 import '../widgets/bottom_nav.dart';
 import 'biodata.dart';
 import 'absensi_screen.dart';
+import 'jadwal_screen.dart';
 import 'input_krs_screen.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -97,19 +98,30 @@ class _HomeScreenState extends State<HomeScreen> {
                     ),
                     const SizedBox(width: 16),
                     Expanded(
-                      child: Container(
-                        height: 100,
-                        decoration: BoxDecoration(
-                          color: Colors.orange.shade400,
-                          borderRadius: BorderRadius.circular(16),
-                        ),
-                        child: const Center(
-                          child: Text(
-                            'Jadwal',
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontSize: 20,
-                              fontWeight: FontWeight.bold,
+                      child: InkWell(
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => const JadwalPage(),
+                            ),
+                          );
+                        },
+                        borderRadius: BorderRadius.circular(16),
+                        child: Container(
+                          height: 100,
+                          decoration: BoxDecoration(
+                            color: Colors.orange.shade400,
+                            borderRadius: BorderRadius.circular(16),
+                          ),
+                          child: const Center(
+                            child: Text(
+                              'Jadwal',
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontSize: 20,
+                                fontWeight: FontWeight.bold,
+                              ),
                             ),
                           ),
                         ),

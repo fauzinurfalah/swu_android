@@ -2,8 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:project_mobileprog/api/api_service.dart';
 import 'package:project_mobileprog/screens/welcome_screen.dart';
 import 'screens/login_screen.dart';
+import 'package:intl/date_symbol_data_local.dart';
 
-void main() {
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  // initialize locale data for Intl (used by DateFormat)
+  // use 'id_ID' to match DateFormat locale identifiers
+  await initializeDateFormatting('id_ID', null);
   runApp(const MyApp());
 }
 
@@ -14,10 +19,7 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       title: 'STMIK Widya Utama',
-      theme: ThemeData(
-        primarySwatch: Colors.blue,
-        fontFamily: 'Roboto',
-      ),
+      theme: ThemeData(primarySwatch: Colors.blue, fontFamily: 'Roboto'),
 
       builder: (context, child) {
         return Center(
@@ -42,4 +44,3 @@ class MyApp extends StatelessWidget {
     );
   }
 }
-
