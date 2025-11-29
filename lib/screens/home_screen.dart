@@ -288,7 +288,7 @@ class _HomeScreenState extends State<HomeScreen> {
                             ),
                             const SizedBox(width: 8),
                             Text(
-                              "Semester ${user?["semester"] ?? "5"}",
+                              "Angkatan ${user?["angkatan"] ?? "5"}",
                               style: const TextStyle(
                                 fontSize: 13,
                                 fontWeight: FontWeight.w600,
