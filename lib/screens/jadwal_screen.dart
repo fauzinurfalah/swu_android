@@ -6,6 +6,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../api/api_service.dart';
 import 'package:table_calendar/table_calendar.dart';
 import 'package:intl/intl.dart';
+import 'absensi_screen.dart';
 
 class Event {
   final int id;
@@ -404,13 +405,13 @@ class _JadwalPageState extends State<JadwalPage> {
                           vertical: 6,
                         ),
                         decoration: BoxDecoration(
-                          color: Colors.blue, // dominant blue
+                          color: Color(0xFF7BA7E2), // dominant blue
                           borderRadius: BorderRadius.circular(12),
                         ),
                         child: DropdownButton<int>(
                           isExpanded: true,
                           value: _selectedKrsId,
-                          dropdownColor: Colors.blue.shade700,
+                          dropdownColor: Color(0xFF7BA7E2),
                           underline: const SizedBox.shrink(),
                           iconEnabledColor: Colors.white,
                           style: const TextStyle(
@@ -649,7 +650,7 @@ class _JadwalPageState extends State<JadwalPage> {
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: Color(0xFF8FB1F3), // soft blue similar to sample
+        color: const Color(0xFF8FB1F3), // soft blue similar to sample
         borderRadius: BorderRadius.circular(12),
       ),
       child: Column(
@@ -674,17 +675,17 @@ class _JadwalPageState extends State<JadwalPage> {
             children: [
               Text(
                 'Rg. ${e.ruang}',
-                style: TextStyle(color: Colors.white70, fontSize: 12),
+                style: const TextStyle(color: Colors.white70, fontSize: 12),
               ),
               const SizedBox(width: 12),
               Text(
                 '${e.jamMulai} - ${e.jamSelesai}',
-                style: TextStyle(color: Colors.white70, fontSize: 12),
+                style: const TextStyle(color: Colors.white70, fontSize: 12),
               ),
               const SizedBox(width: 12),
               Text(
                 'Luring',
-                style: TextStyle(color: Colors.white70, fontSize: 12),
+                style: const TextStyle(color: Colors.white70, fontSize: 12),
               ), // tipe mocked
             ],
           ),
@@ -692,33 +693,85 @@ class _JadwalPageState extends State<JadwalPage> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              // left: Link Zoom
-              TextButton(
-                onPressed: () {
-                  // open link if exists
-                  if (e.linkZoom.isNotEmpty) {
-                    // launch URL using url_launcher if added
-                  } else {
-                    // no link
-                  }
-                },
-                child: Text(
-                  'Link Zoom',
-                  style: TextStyle(
-                    decoration: TextDecoration.underline,
-                    color: Colors.white,
-                  ),
+              // left: Link Zoom, Presensi, Materi buttons
+              Expanded(
+                child: Row(
+                  children: [
+                    // Link Zoom button: white bg, dark blue text, zoom-like icon left
+                    ElevatedButton.icon(
+                      onPressed: () {
+                        if (e.linkZoom.isNotEmpty) {
+                          // open link if exists (implement using url_launcher)
+                        } else {
+                          // no link available
+                        }
+                      },
+                      icon: Icon(Icons.videocam, color: Colors.blue.shade900),
+                      label: Text(
+                        'Link Zoom',
+                        style: TextStyle(color: Colors.blue.shade900),
+                      ),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.white,
+                        elevation: 0,
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 8,
+                        ),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+
+                    // Presensi button: white bg, green text, check icon, navigates to AbsensiScreen
+                    ElevatedButton.icon(
+                      onPressed: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => const AbsensiScreen(),
+                          ),
+                        );
+                      },
+                      icon: Icon(
+                        Icons.check_circle,
+                        color: Colors.green.shade700,
+                      ),
+                      label: Text(
+                        'Presensi',
+                        style: TextStyle(color: Colors.green.shade700),
+                      ),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.white,
+                        elevation: 0,
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 8,
+                        ),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
               ),
 
-              // right: small materi.pdf button
-              ElevatedButton(
+              // right: materi.pdf button (white bg, red text, pdf icon left)
+              ElevatedButton.icon(
                 onPressed: () {
                   // download / open materi
                 },
+                icon: Icon(Icons.picture_as_pdf, color: Colors.red.shade700),
+                label: Text(
+                  e.materi.isNotEmpty ? e.materi : 'materi.pdf',
+                  style: TextStyle(color: Colors.red.shade700, fontSize: 12),
+                ),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.white,
-                  foregroundColor: Colors.black87,
+                  foregroundColor: Colors.red.shade700,
                   padding: const EdgeInsets.symmetric(
                     horizontal: 12,
                     vertical: 8,
@@ -728,10 +781,6 @@ class _JadwalPageState extends State<JadwalPage> {
                   ),
                   elevation: 0,
                 ),
-                child: Text(
-                  e.materi.isNotEmpty ? e.materi : 'materi.pdf',
-                  style: TextStyle(fontSize: 12),
-                ),
               ),
             ],
           ),
@@ -739,4 +788,6 @@ class _JadwalPageState extends State<JadwalPage> {
       ),
     );
   }
+
+  // ...existing code...
 }
