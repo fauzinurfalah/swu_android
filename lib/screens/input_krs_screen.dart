@@ -40,6 +40,7 @@ class _InputKrsScreenState extends State<InputKrsScreen> {
       if (v != null) _minSemester = v;
     }
 
+    // mobprg
     await _getMahasiswaData();
     if (user != null) {
       // pastikan min semester diperbarui dari profile yang baru di-fetch
