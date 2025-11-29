@@ -143,7 +143,10 @@ class _HomeScreenState extends State<HomeScreen> {
                         );
                       },
                     ),
-                    _menuItem('assets/icons/daftar_nilai.png', 'Daftar Nilai'),
+                    _menuItem(
+                      'assets/icons/daftar_nilai.png',
+                      'Transkrip Nilai',
+                    ),
                     _menuItem('assets/icons/khs.png', 'Kartu Hasil Studi'),
                     _menuItem('assets/icons/sp.png', 'SP'),
                     const SizedBox(),
