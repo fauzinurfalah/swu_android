@@ -731,7 +731,10 @@ class _JadwalPageState extends State<JadwalPage> {
                         Navigator.push(
                           context,
                           MaterialPageRoute(
-                            builder: (_) => const AbsensiScreen(),
+                            builder: (_) => AbsenPage(
+                              idKrsDetail: e.id,
+                              namaMatkul: e.namaMatkul,
+                            ),
                           ),
                         );
                       },

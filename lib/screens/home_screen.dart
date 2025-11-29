@@ -4,7 +4,6 @@ import 'package:dio/dio.dart';
 import '../api/api_service.dart';
 import '../widgets/bottom_nav.dart';
 import 'biodata.dart';
-import 'absensi_screen.dart';
 import 'jadwal_screen.dart';
 import 'input_krs_screen.dart';
 
@@ -66,36 +65,6 @@ class _HomeScreenState extends State<HomeScreen> {
                 padding: const EdgeInsets.symmetric(horizontal: 16),
                 child: Row(
                   children: [
-                    Expanded(
-                      child: InkWell(
-                        onTap: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) => const AbsensiScreen(),
-                            ),
-                          );
-                        },
-                        borderRadius: BorderRadius.circular(16),
-                        child: Container(
-                          height: 100,
-                          decoration: BoxDecoration(
-                            color: Colors.green.shade400,
-                            borderRadius: BorderRadius.circular(16),
-                          ),
-                          child: const Center(
-                            child: Text(
-                              'Absensi',
-                              style: TextStyle(
-                                color: Colors.white,
-                                fontSize: 20,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                          ),
-                        ),
-                      ),
-                    ),
                     const SizedBox(width: 16),
                     Expanded(
                       child: InkWell(
@@ -111,12 +80,12 @@ class _HomeScreenState extends State<HomeScreen> {
                         child: Container(
                           height: 100,
                           decoration: BoxDecoration(
-                            color: Colors.orange.shade400,
+                            color: const Color.fromARGB(255, 40, 185, 27),
                             borderRadius: BorderRadius.circular(16),
                           ),
                           child: const Center(
                             child: Text(
-                              'Jadwal',
+                              'Absensi',
                               style: TextStyle(
                                 color: Colors.white,
                                 fontSize: 20,
