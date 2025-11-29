@@ -1,7 +1,9 @@
 // jadwal_page.dart
-import 'dart:convert';
+// no direct json decoding needed; Dio handles response parsing
 import 'package:flutter/material.dart';
-import 'package:http/http.dart' as http;
+import 'package:dio/dio.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import '../api/api_service.dart';
 import 'package:table_calendar/table_calendar.dart';
 import 'package:intl/intl.dart';
 
@@ -39,10 +41,6 @@ class JadwalPage extends StatefulWidget {
 }
 
 class _JadwalPageState extends State<JadwalPage> {
-  // Replace with your real base url and token
-  final String baseUrl = 'http://36.88.99.179:8000';
-  final String token = '<YOUR_BEARER_TOKEN>';
-
   Map<DateTime, List<Event>> _events = {};
   DateTime _focusedDay = DateTime.now();
   DateTime? _selectedDay;
@@ -59,16 +57,79 @@ class _JadwalPageState extends State<JadwalPage> {
   /// Utility: normalize date (strip time)
   DateTime _dateOnly(DateTime d) => DateTime(d.year, d.month, d.day);
 
-  /// Map bahasa hari -> weekday int (DateTime.weekday: Mon=1 .. Sun=7)
+  /// Map bahasa hari (lowercased) -> weekday int (DateTime.weekday: Mon=1 .. Sun=7)
   final Map<String, int> _hariToWeekday = {
-    'Senin': DateTime.monday,
-    'Selasa': DateTime.tuesday,
-    'Rabu': DateTime.wednesday,
-    'Kamis': DateTime.thursday,
-    'Jumat': DateTime.friday,
-    'Sabtu': DateTime.saturday,
-    'Minggu': DateTime.sunday,
+    'senin': DateTime.monday,
+    'selasa': DateTime.tuesday,
+    'rabu': DateTime.wednesday,
+    'kamis': DateTime.thursday,
+    'jumat': DateTime.friday,
+    'sabtu': DateTime.saturday,
+    'minggu': DateTime.sunday,
   };
+
+  // Try to parse various formats returned by API into a weekday int (1..7)
+  int? _weekdayFrom(dynamic raw) {
+    if (raw == null) return null;
+    // If already an int
+    if (raw is int) {
+      if (raw >= 1 && raw <= 7) return raw;
+      return null;
+    }
+
+    final s = raw.toString().trim().toLowerCase();
+    if (s.isEmpty) return null;
+
+    // If contains a number (like '1' or '1 - Senin'), try parse
+    final numMatch = RegExp(r"\d+").firstMatch(s);
+    if (numMatch != null) {
+      final v = int.tryParse(numMatch.group(0)!);
+      if (v != null && v >= 1 && v <= 7) return v;
+    }
+
+    // Common english names
+    final Map<String, int> alt = {
+      'mon': DateTime.monday,
+      'monday': DateTime.monday,
+      'tue': DateTime.tuesday,
+      'tues': DateTime.tuesday,
+      'tuesday': DateTime.tuesday,
+      'wed': DateTime.wednesday,
+      'wednesday': DateTime.wednesday,
+      'thu': DateTime.thursday,
+      'thur': DateTime.thursday,
+      'thursday': DateTime.thursday,
+      'fri': DateTime.friday,
+      'friday': DateTime.friday,
+      'sat': DateTime.saturday,
+      'saturday': DateTime.saturday,
+      'sun': DateTime.sunday,
+      'sunday': DateTime.sunday,
+
+      // Indonesian common abbreviations
+      'sen': DateTime.monday,
+      'sel': DateTime.tuesday,
+      'rab': DateTime.wednesday,
+      'kam': DateTime.thursday,
+      'jum': DateTime.friday,
+      'sab': DateTime.saturday,
+      'min': DateTime.sunday,
+      'mg': DateTime.sunday,
+    };
+
+    // direct mapping from full Indonesian name
+    if (_hariToWeekday.containsKey(s)) return _hariToWeekday[s];
+    if (alt.containsKey(s)) return alt[s];
+
+    // sometimes API returns like "Senin, Rabu" or "Senin / Rabu" - take first
+    final first = s.split(RegExp(r'[,/\\|;]')).first.trim();
+    if (first.isNotEmpty) {
+      if (_hariToWeekday.containsKey(first)) return _hariToWeekday[first];
+      if (alt.containsKey(first)) return alt[first];
+    }
+
+    return null;
+  }
 
   Future<void> _fetchAndBuildEventsForMonth(DateTime monthFocus) async {
     setState(() {
@@ -77,49 +138,36 @@ class _JadwalPageState extends State<JadwalPage> {
     });
 
     try {
-      final uri = Uri.parse('$baseUrl/api/jadwal/daftar-jadwal');
-      final res = await http.get(
-        uri,
-        headers: {
-          'Authorization': 'Bearer $token',
-          'Accept': 'application/json',
-        },
-      );
+      // Use Dio and include auth token from SharedPreferences (like KRS page)
+      final prefs = await SharedPreferences.getInstance();
+      final token = prefs.getString('auth_token');
 
-      // Validate HTTP status first
-      if (res.statusCode != 200) {
+      final dio = Dio();
+      if (token != null) dio.options.headers['Authorization'] = 'Bearer $token';
+      dio.options.headers['Content-type'] = 'application/json';
+      dio.options.validateStatus = (_) => true;
+
+      final url = "${ApiService.baseUrl}jadwal/daftar-jadwal";
+      final response = await dio.get(url);
+
+      if (response.statusCode != 200) {
         setState(() {
-          _error = 'Server error: ${res.statusCode}';
+          _error = 'Server error: ${response.statusCode}';
           _loading = false;
           _events = {};
         });
         return;
       }
 
-      // Guard against empty body
-      if (res.body.trim().isEmpty) {
-        setState(() {
-          _error = 'Respons kosong dari server';
-          _loading = false;
-          _events = {};
-        });
-        return;
-      }
+      final List<dynamic> jadwals =
+          response.data['jadwals'] ?? response.data['data'] ?? [];
 
-      // Parse JSON safely
-      Map<String, dynamic> body;
-      try {
-        body = json.decode(res.body) as Map<String, dynamic>;
-      } catch (e) {
-        setState(() {
-          _error = 'Gagal parsing JSON: $e';
-          _loading = false;
-          _events = {};
-        });
-        return;
-      }
-
-      final List<dynamic> jadwals = body['jadwals'] ?? [];
+      // Load user's KRS info to filter jadwal only for courses taken
+      final userCourseSets = await _getUserKrsCourseSets();
+      final Set<int> existingJadwalIds =
+          (userCourseSets['ids'] as Set<int>?) ?? <int>{};
+      final Set<String> existingNames =
+          (userCourseSets['names'] as Set<String>?) ?? <String>{};
 
       // Build events map for the visible month range
       final lastDayOfMonth = DateTime(monthFocus.year, monthFocus.month + 1, 0);
@@ -127,9 +175,28 @@ class _JadwalPageState extends State<JadwalPage> {
       Map<DateTime, List<Event>> newEvents = {};
 
       for (var j in jadwals) {
-        final namaHari = j['nama_hari'] as String? ?? '';
-        final weekday = _hariToWeekday[namaHari];
+        final namaHariRaw = j['nama_hari'] ?? j['hari'] ?? j['hari_nama'] ?? '';
+        final weekday = _weekdayFrom(namaHariRaw);
         if (weekday == null) continue; // unknown day
+
+        // Filter: only include jadwal that matches user's KRS courses
+        bool matchesKrs = false;
+        try {
+          final jid = j['id'] is int
+              ? j['id']
+              : int.tryParse(j['id']?.toString() ?? '');
+          if (jid != null && existingJadwalIds.contains(jid)) matchesKrs = true;
+        } catch (_) {}
+        final namaMatkulFromApi = (j['nama_matakuliah'] ?? j['nama'] ?? '')
+            .toString()
+            .trim()
+            .toLowerCase();
+        if (!matchesKrs &&
+            namaMatkulFromApi.isNotEmpty &&
+            existingNames.contains(namaMatkulFromApi))
+          matchesKrs = true;
+
+        if (!matchesKrs) continue;
 
         // Create Event object
         final ev = Event(
@@ -164,6 +231,103 @@ class _JadwalPageState extends State<JadwalPage> {
         _loading = false;
         _events = {};
       });
+    }
+  }
+
+  // Helper: fetch user's KRS and return two sets: existing jadwal ids and lowercased mata kuliah names
+  Future<Map<String, dynamic>> _getUserKrsCourseSets() async {
+    final prefs = await SharedPreferences.getInstance();
+    final token = prefs.getString('auth_token');
+    final email = prefs.getString('auth_email');
+
+    final dio = Dio();
+    if (token != null) dio.options.headers['Authorization'] = 'Bearer $token';
+    dio.options.headers['Content-type'] = 'application/json';
+    dio.options.validateStatus = (_) => true;
+
+    try {
+      if (email == null) return {'ids': <int>{}, 'names': <String>{}};
+
+      // get mahasiswa to obtain nim
+      final respMahasiswa = await dio.post(
+        '${ApiService.baseUrl}mahasiswa/detail-mahasiswa',
+        data: {'email': email},
+      );
+      if (respMahasiswa.statusCode != 200)
+        return {'ids': <int>{}, 'names': <String>{}};
+      final nim = respMahasiswa.data['data']?['nim']?.toString();
+      if (nim == null) return {'ids': <int>{}, 'names': <String>{}};
+
+      // get daftar KRS for mahasiswa
+      final respKrs = await dio.get(
+        '${ApiService.baseUrl}krs/daftar-krs?id_mahasiswa=$nim',
+      );
+      if (respKrs.statusCode != 200)
+        return {'ids': <int>{}, 'names': <String>{}};
+      final List<dynamic> daftarKrs = respKrs.data['data'] ?? [];
+      if (daftarKrs.isEmpty) return {'ids': <int>{}, 'names': <String>{}};
+
+      // pick the most recent KRS: prefer highest semester, fallback to largest id
+      dynamic chosen = daftarKrs.first;
+      try {
+        chosen = daftarKrs.reduce((a, b) {
+          final ase = a['semester'];
+          final bse = b['semester'];
+          final ai = ase is int
+              ? ase
+              : int.tryParse(ase?.toString() ?? '0') ?? 0;
+          final bi = bse is int
+              ? bse
+              : int.tryParse(bse?.toString() ?? '0') ?? 0;
+          if (bi != ai) return bi > ai ? b : a;
+          final aid = a['id'] is int
+              ? a['id']
+              : int.tryParse(a['id']?.toString() ?? '0') ?? 0;
+          final bid = b['id'] is int
+              ? b['id']
+              : int.tryParse(b['id']?.toString() ?? '0') ?? 0;
+          return bid > aid ? b : a;
+        });
+      } catch (_) {}
+
+      final idKrs = chosen['id'];
+      if (idKrs == null) return {'ids': <int>{}, 'names': <String>{}};
+
+      final respDetail = await dio.get(
+        '${ApiService.baseUrl}krs/detail-krs?id_krs=$idKrs',
+      );
+      if (respDetail.statusCode != 200)
+        return {'ids': <int>{}, 'names': <String>{}};
+      final List<dynamic> daftarMatkul = respDetail.data['data'] ?? [];
+
+      final Set<int> ids = {};
+      final Set<String> names = {};
+      for (final m in daftarMatkul) {
+        try {
+          final candidates = [
+            'id_jadwal',
+            'jadwal_id',
+            'id_jadwal_krs',
+            'id_jadwal',
+          ];
+          for (final k in candidates) {
+            if (m[k] != null) {
+              final jid = m[k] is int ? m[k] : int.tryParse(m[k].toString());
+              if (jid != null) ids.add(jid);
+              break;
+            }
+          }
+        } catch (_) {}
+        final name = (m['nama_matakuliah'] ?? m['nama'] ?? '')
+            .toString()
+            .trim()
+            .toLowerCase();
+        if (name.isNotEmpty) names.add(name);
+      }
+
+      return {'ids': ids, 'names': names};
+    } catch (_) {
+      return {'ids': <int>{}, 'names': <String>{}};
     }
   }
 
@@ -220,6 +384,7 @@ class _JadwalPageState extends State<JadwalPage> {
                     focusedDay: _focusedDay,
                     eventLoader: _getEventsForDay,
                     selectedDayPredicate: (day) => isSameDay(_selectedDay, day),
+                    startingDayOfWeek: StartingDayOfWeek.sunday,
                     locale: 'id_ID',
                     headerVisible: false, // hide default header
                     calendarStyle: CalendarStyle(
@@ -267,19 +432,20 @@ class _JadwalPageState extends State<JadwalPage> {
                         return const SizedBox.shrink();
                       },
                       dowBuilder: (context, day) {
-                        // Show "Mg Sen Sel Rab Kam Jum Sab" as in image abbreviations
-                        final names = [
-                          'Mg',
-                          'Sen',
-                          'Sel',
-                          'Rab',
-                          'Kam',
-                          'Jum',
-                          'Sab',
-                        ];
+                        // Map DateTime.weekday (Mon=1..Sun=7) to Indonesian short names
+                        const Map<int, String> names = {
+                          DateTime.monday: 'Sen',
+                          DateTime.tuesday: 'Sel',
+                          DateTime.wednesday: 'Rab',
+                          DateTime.thursday: 'Kam',
+                          DateTime.friday: 'Jum',
+                          DateTime.saturday: 'Sab',
+                          DateTime.sunday: 'Mg',
+                        };
+                        final label = names[day.weekday] ?? '';
                         return Center(
                           child: Text(
-                            names[day.weekday - 1],
+                            label,
                             style: TextStyle(
                               fontSize: 12,
                               color: Colors.grey[700],
