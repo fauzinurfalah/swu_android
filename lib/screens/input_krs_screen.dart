@@ -40,6 +40,7 @@ class _InputKrsScreenState extends State<InputKrsScreen> {
       if (v != null) _minSemester = v;
     }
 
+    // mobprg
     await _getMahasiswaData();
     if (user != null) {
       // pastikan min semester diperbarui dari profile yang baru di-fetch
@@ -314,7 +315,12 @@ class _InputKrsScreenState extends State<InputKrsScreen> {
                                   child: ElevatedButton.icon(
                                     onPressed: isLoading ? null : _submitKrs,
                                     style: ElevatedButton.styleFrom(
-                                      backgroundColor: const Color(0xFF42A5F5),
+                                      backgroundColor: const Color.fromARGB(
+                                        1000,
+                                        123,
+                                        167,
+                                        226,
+                                      ),
                                       shape: RoundedRectangleBorder(
                                         borderRadius: BorderRadius.circular(10),
                                       ),
@@ -379,7 +385,12 @@ class _InputKrsScreenState extends State<InputKrsScreen> {
                                         child: ListTile(
                                           leading: const Icon(
                                             Icons.book,
-                                            color: Colors.blue,
+                                            color: Color.fromARGB(
+                                              1000,
+                                              123,
+                                              167,
+                                              226,
+                                            ),
                                           ),
                                           title: const Text(
                                             "KRS Anda",
