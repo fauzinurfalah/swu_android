@@ -52,6 +52,7 @@ dependencies:
   flutter_webrtc: ^0.9.20
   table_calendar: ^3.0.9
   http: ^1.6.0
+
   # intl already declared above; keep single compatible version
  
 

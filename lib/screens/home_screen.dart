@@ -6,6 +6,8 @@ import '../widgets/bottom_nav.dart';
 import 'biodata.dart';
 import 'jadwal_screen.dart';
 import 'input_krs_screen.dart';
+import 'transkip.dart';
+
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -127,6 +129,14 @@ class _HomeScreenState extends State<HomeScreen> {
                     _menuItem(
                       'assets/icons/daftar_nilai.png',
                       'Transkrip Nilai',
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => const TranskipPage(),
+                          ),
+                        );
+                      },
                     ),
                     _menuItem('assets/icons/khs.png', 'Kartu Hasil Studi'),
                     _menuItem('assets/icons/sp.png', 'SP'),
