@@ -1,9 +1,12 @@
 // jadwal_page.dart
-import 'dart:convert';
+// no direct json decoding needed; Dio handles response parsing
 import 'package:flutter/material.dart';
-import 'package:http/http.dart' as http;
+import 'package:dio/dio.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import '../api/api_service.dart';
 import 'package:table_calendar/table_calendar.dart';
 import 'package:intl/intl.dart';
+import 'absensi_screen.dart';
 
 class Event {
   final int id;
@@ -39,36 +42,217 @@ class JadwalPage extends StatefulWidget {
 }
 
 class _JadwalPageState extends State<JadwalPage> {
-  // Replace with your real base url and token
-  final String baseUrl = 'http://36.88.99.179:8000';
-  final String token = '<YOUR_BEARER_TOKEN>';
-
   Map<DateTime, List<Event>> _events = {};
   DateTime _focusedDay = DateTime.now();
   DateTime? _selectedDay;
   bool _loading = true;
   String _error = '';
+  List<dynamic> _daftarKrs = [];
+  int? _selectedKrsId;
+  Set<int> _filterJadwalIds = {};
+  Set<String> _filterNames = {};
 
   @override
   void initState() {
     super.initState();
     _selectedDay = _focusedDay;
-    _fetchAndBuildEventsForMonth(_focusedDay);
+    // load user's KRS list then load filter for default selection and events
+    _initKrsAndEvents();
+  }
+
+  Future<void> _initKrsAndEvents() async {
+    await _loadDaftarKrs();
+    if (_selectedKrsId != null) {
+      await _loadKrsDetailToFilter(_selectedKrsId!);
+    }
+    await _fetchAndBuildEventsForMonth(_focusedDay);
+  }
+
+  Future<void> _loadDaftarKrs() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final token = prefs.getString('auth_token');
+      final email = prefs.getString('auth_email');
+
+      final dio = Dio();
+      if (token != null) dio.options.headers['Authorization'] = 'Bearer $token';
+      dio.options.headers['Content-type'] = 'application/json';
+      dio.options.validateStatus = (_) => true;
+
+      if (email == null) {
+        setState(() => _daftarKrs = []);
+        return;
+      }
+
+      final resp = await dio.post(
+        '${ApiService.baseUrl}mahasiswa/detail-mahasiswa',
+        data: {'email': email},
+      );
+      if (resp.statusCode != 200) {
+        setState(() => _daftarKrs = []);
+        return;
+      }
+      final nim = resp.data['data']?['nim']?.toString();
+      if (nim == null) {
+        setState(() => _daftarKrs = []);
+        return;
+      }
+
+      final response = await dio.get(
+        '${ApiService.baseUrl}krs/daftar-krs?id_mahasiswa=$nim',
+      );
+      if (response.statusCode == 200) {
+        final List<dynamic> list = response.data['data'] ?? [];
+        setState(() {
+          _daftarKrs = list;
+          if (list.isNotEmpty) {
+            // default select first (you can choose other policy)
+            _selectedKrsId = list.first['id'];
+          }
+        });
+      } else {
+        setState(() => _daftarKrs = []);
+      }
+    } catch (e) {
+      setState(() => _daftarKrs = []);
+    }
+  }
+
+  Future<void> _loadKrsDetailToFilter(int idKrs) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final token = prefs.getString('auth_token');
+
+      final dio = Dio();
+      if (token != null) dio.options.headers['Authorization'] = 'Bearer $token';
+      dio.options.headers['Content-type'] = 'application/json';
+      dio.options.validateStatus = (_) => true;
+
+      final resp = await dio.get(
+        '${ApiService.baseUrl}krs/detail-krs?id_krs=$idKrs',
+      );
+      if (resp.statusCode != 200) {
+        setState(() {
+          _filterJadwalIds = {};
+          _filterNames = {};
+        });
+        return;
+      }
+
+      final List<dynamic> daftarMatkul = resp.data['data'] ?? [];
+      final ids = <int>{};
+      final names = <String>{};
+      for (final m in daftarMatkul) {
+        try {
+          final candidates = [
+            'id_jadwal',
+            'jadwal_id',
+            'id_jadwal_krs',
+            'id_jadwal',
+            'id',
+          ];
+          for (final k in candidates) {
+            if (m[k] != null) {
+              final jid = m[k] is int ? m[k] : int.tryParse(m[k].toString());
+              if (jid != null) ids.add(jid);
+              break;
+            }
+          }
+        } catch (_) {}
+        final name = (m['nama_matakuliah'] ?? m['nama'] ?? '')
+            .toString()
+            .trim()
+            .toLowerCase();
+        if (name.isNotEmpty) names.add(name);
+      }
+      setState(() {
+        _filterJadwalIds = ids;
+        _filterNames = names;
+      });
+    } catch (e) {
+      setState(() {
+        _filterJadwalIds = {};
+        _filterNames = {};
+      });
+    }
   }
 
   /// Utility: normalize date (strip time)
   DateTime _dateOnly(DateTime d) => DateTime(d.year, d.month, d.day);
 
-  /// Map bahasa hari -> weekday int (DateTime.weekday: Mon=1 .. Sun=7)
+  /// Map bahasa hari (lowercased) -> weekday int (DateTime.weekday: Mon=1 .. Sun=7)
   final Map<String, int> _hariToWeekday = {
-    'Senin': DateTime.monday,
-    'Selasa': DateTime.tuesday,
-    'Rabu': DateTime.wednesday,
-    'Kamis': DateTime.thursday,
-    'Jumat': DateTime.friday,
-    'Sabtu': DateTime.saturday,
-    'Minggu': DateTime.sunday,
+    'senin': DateTime.monday,
+    'selasa': DateTime.tuesday,
+    'rabu': DateTime.wednesday,
+    'kamis': DateTime.thursday,
+    'jumat': DateTime.friday,
+    'sabtu': DateTime.saturday,
+    'minggu': DateTime.sunday,
   };
+
+  // Try to parse various formats returned by API into a weekday int (1..7)
+  int? _weekdayFrom(dynamic raw) {
+    if (raw == null) return null;
+    // If already an int
+    if (raw is int) {
+      if (raw >= 1 && raw <= 7) return raw;
+      return null;
+    }
+
+    final s = raw.toString().trim().toLowerCase();
+    if (s.isEmpty) return null;
+
+    // If contains a number (like '1' or '1 - Senin'), try parse
+    final numMatch = RegExp(r"\d+").firstMatch(s);
+    if (numMatch != null) {
+      final v = int.tryParse(numMatch.group(0)!);
+      if (v != null && v >= 1 && v <= 7) return v;
+    }
+
+    // Common english names
+    final Map<String, int> alt = {
+      'mon': DateTime.monday,
+      'monday': DateTime.monday,
+      'tue': DateTime.tuesday,
+      'tues': DateTime.tuesday,
+      'tuesday': DateTime.tuesday,
+      'wed': DateTime.wednesday,
+      'wednesday': DateTime.wednesday,
+      'thu': DateTime.thursday,
+      'thur': DateTime.thursday,
+      'thursday': DateTime.thursday,
+      'fri': DateTime.friday,
+      'friday': DateTime.friday,
+      'sat': DateTime.saturday,
+      'saturday': DateTime.saturday,
+      'sun': DateTime.sunday,
+      'sunday': DateTime.sunday,
+
+      // Indonesian common abbreviations
+      'sen': DateTime.monday,
+      'sel': DateTime.tuesday,
+      'rab': DateTime.wednesday,
+      'kam': DateTime.thursday,
+      'jum': DateTime.friday,
+      'sab': DateTime.saturday,
+      'min': DateTime.sunday,
+      'mg': DateTime.sunday,
+    };
+
+    // direct mapping from full Indonesian name
+    if (_hariToWeekday.containsKey(s)) return _hariToWeekday[s];
+    if (alt.containsKey(s)) return alt[s];
+
+    // sometimes API returns like "Senin, Rabu" or "Senin / Rabu" - take first
+    final first = s.split(RegExp(r'[,/\\|;]')).first.trim();
+    if (first.isNotEmpty) {
+      if (_hariToWeekday.containsKey(first)) return _hariToWeekday[first];
+      if (alt.containsKey(first)) return alt[first];
+    }
+
+    return null;
+  }
 
   Future<void> _fetchAndBuildEventsForMonth(DateTime monthFocus) async {
     setState(() {
@@ -77,49 +261,33 @@ class _JadwalPageState extends State<JadwalPage> {
     });
 
     try {
-      final uri = Uri.parse('$baseUrl/api/jadwal/daftar-jadwal');
-      final res = await http.get(
-        uri,
-        headers: {
-          'Authorization': 'Bearer $token',
-          'Accept': 'application/json',
-        },
-      );
+      // Use Dio and include auth token from SharedPreferences (like KRS page)
+      final prefs = await SharedPreferences.getInstance();
+      final token = prefs.getString('auth_token');
 
-      // Validate HTTP status first
-      if (res.statusCode != 200) {
+      final dio = Dio();
+      if (token != null) dio.options.headers['Authorization'] = 'Bearer $token';
+      dio.options.headers['Content-type'] = 'application/json';
+      dio.options.validateStatus = (_) => true;
+
+      final url = "${ApiService.baseUrl}jadwal/daftar-jadwal";
+      final response = await dio.get(url);
+
+      if (response.statusCode != 200) {
         setState(() {
-          _error = 'Server error: ${res.statusCode}';
+          _error = 'Server error: ${response.statusCode}';
           _loading = false;
           _events = {};
         });
         return;
       }
 
-      // Guard against empty body
-      if (res.body.trim().isEmpty) {
-        setState(() {
-          _error = 'Respons kosong dari server';
-          _loading = false;
-          _events = {};
-        });
-        return;
-      }
+      final List<dynamic> jadwals =
+          response.data['jadwals'] ?? response.data['data'] ?? [];
 
-      // Parse JSON safely
-      Map<String, dynamic> body;
-      try {
-        body = json.decode(res.body) as Map<String, dynamic>;
-      } catch (e) {
-        setState(() {
-          _error = 'Gagal parsing JSON: $e';
-          _loading = false;
-          _events = {};
-        });
-        return;
-      }
-
-      final List<dynamic> jadwals = body['jadwals'] ?? [];
+      // Use filter sets loaded from selected KRS (if any)
+      final Set<int> existingJadwalIds = _filterJadwalIds;
+      final Set<String> existingNames = _filterNames;
 
       // Build events map for the visible month range
       final lastDayOfMonth = DateTime(monthFocus.year, monthFocus.month + 1, 0);
@@ -127,9 +295,28 @@ class _JadwalPageState extends State<JadwalPage> {
       Map<DateTime, List<Event>> newEvents = {};
 
       for (var j in jadwals) {
-        final namaHari = j['nama_hari'] as String? ?? '';
-        final weekday = _hariToWeekday[namaHari];
+        final namaHariRaw = j['nama_hari'] ?? j['hari'] ?? j['hari_nama'] ?? '';
+        final weekday = _weekdayFrom(namaHariRaw);
         if (weekday == null) continue; // unknown day
+
+        // Filter: only include jadwal that matches user's KRS courses
+        bool matchesKrs = false;
+        try {
+          final jid = j['id'] is int
+              ? j['id']
+              : int.tryParse(j['id']?.toString() ?? '');
+          if (jid != null && existingJadwalIds.contains(jid)) matchesKrs = true;
+        } catch (_) {}
+        final namaMatkulFromApi = (j['nama_matakuliah'] ?? j['nama'] ?? '')
+            .toString()
+            .trim()
+            .toLowerCase();
+        if (!matchesKrs &&
+            namaMatkulFromApi.isNotEmpty &&
+            existingNames.contains(namaMatkulFromApi))
+          matchesKrs = true;
+
+        if (!matchesKrs) continue;
 
         // Create Event object
         final ev = Event(
@@ -166,6 +353,9 @@ class _JadwalPageState extends State<JadwalPage> {
       });
     }
   }
+
+  // Helper: fetch user's KRS and return two sets: existing jadwal ids and lowercased mata kuliah names
+  // NOTE: older helper to auto-select KRS is removed — dropdown + explicit loaders are used instead.
 
   List<Event> _getEventsForDay(DateTime day) {
     return _events[_dateOnly(day)] ?? [];
@@ -204,8 +394,60 @@ class _JadwalPageState extends State<JadwalPage> {
               padding: const EdgeInsets.symmetric(horizontal: 16.0),
               child: Column(
                 children: [
+                  // Dropdown KRS (if user has any)
+                  if (_daftarKrs.isNotEmpty)
+                    // Styled dropdown: blue background, white text, padding, rounded
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 6.0),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 6,
+                        ),
+                        decoration: BoxDecoration(
+                          color: Color(0xFF7BA7E2), // dominant blue
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: DropdownButton<int>(
+                          isExpanded: true,
+                          value: _selectedKrsId,
+                          dropdownColor: Color(0xFF7BA7E2),
+                          underline: const SizedBox.shrink(),
+                          iconEnabledColor: Colors.white,
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.w600,
+                          ),
+                          items: _daftarKrs.map((krs) {
+                            final id = krs['id'] as int?;
+                            final semester = krs['semester']?.toString() ?? '-';
+                            final tahun =
+                                (krs['tahun_ajaran'] ?? krs['tahun'])
+                                    ?.toString() ??
+                                '-';
+                            return DropdownMenuItem<int>(
+                              value: id,
+                              child: Text(
+                                'Semester $semester • $tahun',
+                                style: const TextStyle(color: Colors.white),
+                              ),
+                            );
+                          }).toList(),
+                          onChanged: (val) async {
+                            if (val == null) return;
+                            setState(() {
+                              _selectedKrsId = val;
+                              _loading = true;
+                            });
+                            await _loadKrsDetailToFilter(val);
+                            await _fetchAndBuildEventsForMonth(_focusedDay);
+                          },
+                        ),
+                      ),
+                    ),
+
                   // Title "Oktober, 2025" like sample
-                  SizedBox(height: 4),
+                  const SizedBox(height: 4),
                   Text(
                     monthTitle,
                     style: const TextStyle(
@@ -220,18 +462,36 @@ class _JadwalPageState extends State<JadwalPage> {
                     focusedDay: _focusedDay,
                     eventLoader: _getEventsForDay,
                     selectedDayPredicate: (day) => isSameDay(_selectedDay, day),
+                    startingDayOfWeek: StartingDayOfWeek.sunday,
                     locale: 'id_ID',
                     headerVisible: false, // hide default header
                     calendarStyle: CalendarStyle(
                       outsideDaysVisible: true,
                       markersMaxCount: 1,
+                      // Make today's and selected day's circle transparent (no fill)
+                      // but keep the outline border color. Also set the text color
+                      // to match the outline so it visually "inverts" on selection/today.
                       todayDecoration: BoxDecoration(
                         shape: BoxShape.circle,
-                        border: Border.all(color: Colors.grey.shade400),
+                        color: const Color.fromARGB(255, 131, 174, 255),
+                        border: Border.all(
+                          color: const Color.fromARGB(255, 156, 196, 255),
+                        ),
                       ),
                       selectedDecoration: BoxDecoration(
                         shape: BoxShape.circle,
-                        border: Border.all(color: Colors.blue),
+                        color: Colors.transparent,
+                        border: Border.all(
+                          color: const Color.fromARGB(255, 131, 174, 255),
+                        ),
+                      ),
+                      todayTextStyle: const TextStyle(
+                        color: Color.fromARGB(255, 255, 255, 255),
+                        fontWeight: FontWeight.bold,
+                      ),
+                      selectedTextStyle: const TextStyle(
+                        color: Color.fromARGB(255, 0, 0, 0),
+                        fontWeight: FontWeight.bold,
                       ),
                     ),
                     daysOfWeekStyle: DaysOfWeekStyle(
@@ -267,22 +527,23 @@ class _JadwalPageState extends State<JadwalPage> {
                         return const SizedBox.shrink();
                       },
                       dowBuilder: (context, day) {
-                        // Show "Mg Sen Sel Rab Kam Jum Sab" as in image abbreviations
-                        final names = [
-                          'Mg',
-                          'Sen',
-                          'Sel',
-                          'Rab',
-                          'Kam',
-                          'Jum',
-                          'Sab',
-                        ];
+                        // Map DateTime.weekday (Mon=1..Sun=7) to Indonesian short names
+                        const Map<int, String> names = {
+                          DateTime.monday: 'Sen',
+                          DateTime.tuesday: 'Sel',
+                          DateTime.wednesday: 'Rab',
+                          DateTime.thursday: 'Kam',
+                          DateTime.friday: 'Jum',
+                          DateTime.saturday: 'Sab',
+                          DateTime.sunday: 'Mg',
+                        };
+                        final label = names[day.weekday] ?? '';
                         return Center(
                           child: Text(
-                            names[day.weekday - 1],
+                            label,
                             style: TextStyle(
                               fontSize: 12,
-                              color: Colors.grey[700],
+                              color: const Color.fromARGB(255, 5, 1, 1),
                             ),
                           ),
                         );
@@ -389,15 +650,8 @@ class _JadwalPageState extends State<JadwalPage> {
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: Color(0xFF8FB1F3), // soft blue similar to sample
+        color: const Color(0xFF8FB1F3), // soft blue similar to sample
         borderRadius: BorderRadius.circular(12),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.grey.shade200,
-            blurRadius: 4,
-            offset: Offset(0, 2),
-          ),
-        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -421,17 +675,17 @@ class _JadwalPageState extends State<JadwalPage> {
             children: [
               Text(
                 'Rg. ${e.ruang}',
-                style: TextStyle(color: Colors.white70, fontSize: 12),
+                style: const TextStyle(color: Colors.white70, fontSize: 12),
               ),
               const SizedBox(width: 12),
               Text(
                 '${e.jamMulai} - ${e.jamSelesai}',
-                style: TextStyle(color: Colors.white70, fontSize: 12),
+                style: const TextStyle(color: Colors.white70, fontSize: 12),
               ),
               const SizedBox(width: 12),
               Text(
                 'Luring',
-                style: TextStyle(color: Colors.white70, fontSize: 12),
+                style: const TextStyle(color: Colors.white70, fontSize: 12),
               ), // tipe mocked
             ],
           ),
@@ -439,33 +693,85 @@ class _JadwalPageState extends State<JadwalPage> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              // left: Link Zoom
-              TextButton(
-                onPressed: () {
-                  // open link if exists
-                  if (e.linkZoom.isNotEmpty) {
-                    // launch URL using url_launcher if added
-                  } else {
-                    // no link
-                  }
-                },
-                child: Text(
-                  'Link Zoom',
-                  style: TextStyle(
-                    decoration: TextDecoration.underline,
-                    color: Colors.white,
-                  ),
+              // left: Link Zoom, Presensi, Materi buttons
+              Expanded(
+                child: Row(
+                  children: [
+                    // Link Zoom button: white bg, dark blue text, zoom-like icon left
+                    ElevatedButton.icon(
+                      onPressed: () {
+                        if (e.linkZoom.isNotEmpty) {
+                          // open link if exists (implement using url_launcher)
+                        } else {
+                          // no link available
+                        }
+                      },
+                      icon: Icon(Icons.videocam, color: Colors.blue.shade900),
+                      label: Text(
+                        'Link Zoom',
+                        style: TextStyle(color: Colors.blue.shade900),
+                      ),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.white,
+                        elevation: 0,
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 8,
+                        ),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+
+                    // Presensi button: white bg, green text, check icon, navigates to AbsensiScreen
+                    ElevatedButton.icon(
+                      onPressed: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => const AbsensiScreen(),
+                          ),
+                        );
+                      },
+                      icon: Icon(
+                        Icons.check_circle,
+                        color: Colors.green.shade700,
+                      ),
+                      label: Text(
+                        'Presensi',
+                        style: TextStyle(color: Colors.green.shade700),
+                      ),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.white,
+                        elevation: 0,
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 8,
+                        ),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
               ),
 
-              // right: small materi.pdf button
-              ElevatedButton(
+              // right: materi.pdf button (white bg, red text, pdf icon left)
+              ElevatedButton.icon(
                 onPressed: () {
                   // download / open materi
                 },
+                icon: Icon(Icons.picture_as_pdf, color: Colors.red.shade700),
+                label: Text(
+                  e.materi.isNotEmpty ? e.materi : 'materi.pdf',
+                  style: TextStyle(color: Colors.red.shade700, fontSize: 12),
+                ),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.white,
-                  foregroundColor: Colors.black87,
+                  foregroundColor: Colors.red.shade700,
                   padding: const EdgeInsets.symmetric(
                     horizontal: 12,
                     vertical: 8,
@@ -475,10 +781,6 @@ class _JadwalPageState extends State<JadwalPage> {
                   ),
                   elevation: 0,
                 ),
-                child: Text(
-                  e.materi.isNotEmpty ? e.materi : 'materi.pdf',
-                  style: TextStyle(fontSize: 12),
-                ),
               ),
             ],
           ),
@@ -486,4 +788,6 @@ class _JadwalPageState extends State<JadwalPage> {
       ),
     );
   }
+
+  // ...existing code...
 }
