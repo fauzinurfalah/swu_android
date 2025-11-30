@@ -7,7 +7,7 @@ import 'biodata.dart';
 import 'jadwal_screen.dart';
 import 'input_krs_screen.dart';
 import 'transkip.dart';
-
+import 'sp_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -55,6 +55,7 @@ class _HomeScreenState extends State<HomeScreen> {
     return Scaffold(
       backgroundColor: Colors.white,
       bottomNavigationBar: const BottomNav(initialIndex: 0),
+
       body: SafeArea(
         child: SingleChildScrollView(
           child: Column(
@@ -62,23 +63,21 @@ class _HomeScreenState extends State<HomeScreen> {
               _buildBlueHeader(),
               const SizedBox(height: 24),
 
-              // Tombol Absensi & Jadwal
+              // ABSENSI
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 16),
                 child: Row(
                   children: [
                     const SizedBox(width: 16),
+
                     Expanded(
                       child: InkWell(
                         onTap: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) => const JadwalPage(),
-                            ),
-                          );
+                          Navigator.push(context,
+                            MaterialPageRoute(builder: (_) => const JadwalPage()));
                         },
                         borderRadius: BorderRadius.circular(16),
+
                         child: Container(
                           height: 100,
                           decoration: BoxDecoration(
@@ -104,7 +103,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
               const SizedBox(height: 20),
 
-              // Menu Grid
+              // MENU
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 25),
                 child: GridView.count(
@@ -113,33 +112,37 @@ class _HomeScreenState extends State<HomeScreen> {
                   physics: const NeverScrollableScrollPhysics(),
                   mainAxisSpacing: 25,
                   crossAxisSpacing: 25,
+
                   children: [
                     _menuItem(
                       'assets/icons/input_krs.png',
                       'KRS',
                       onTap: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => const InputKrsScreen(),
-                          ),
-                        );
+                        Navigator.push(context,
+                          MaterialPageRoute(builder: (_) => const InputKrsScreen()));
                       },
                     ),
+
                     _menuItem(
                       'assets/icons/daftar_nilai.png',
                       'Transkrip Nilai',
                       onTap: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => const TranskipPage(),
-                          ),
-                        );
+                        Navigator.push(context,
+                          MaterialPageRoute(builder: (_) => const TranskipPage()));
                       },
                     ),
+
                     _menuItem('assets/icons/khs.png', 'Kartu Hasil Studi'),
-                    _menuItem('assets/icons/sp.png', 'SP'),
+
+                    _menuItem(
+                      'assets/icons/sp.png',
+                      'SP',
+                      onTap: () {
+                        Navigator.push(context,
+                            MaterialPageRoute(builder: (_) => const SpScreen()));
+                      },
+                    ),
+
                     const SizedBox(),
                   ],
                 ),
@@ -153,11 +156,11 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  // HEADER BIRU ATAS
+  // HEADER
   Widget _buildBlueHeader() {
     final hasFoto =
-        (user?["foto"] != null &&
-        (user?["foto"]?.toString().isNotEmpty ?? false));
+        (user?["foto"] != null && (user?["foto"]?.toString().isNotEmpty ?? false));
+
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.fromLTRB(20, 28, 20, 30),
@@ -168,10 +171,10 @@ class _HomeScreenState extends State<HomeScreen> {
           bottomRight: Radius.circular(40),
         ),
       ),
+
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Bar atas: greeting + logo
           Row(
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
@@ -185,26 +188,17 @@ class _HomeScreenState extends State<HomeScreen> {
                   ),
                 ),
               ),
+
               Container(
                 height: 46,
                 width: 46,
-                decoration: BoxDecoration(
+                decoration: const BoxDecoration(
                   color: Colors.white,
                   shape: BoxShape.circle,
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black26,
-                      blurRadius: 5,
-                      offset: Offset(0, 2),
-                    ),
-                  ],
                 ),
                 child: Padding(
                   padding: const EdgeInsets.all(6),
-                  child: Image.asset(
-                    'assets/images/swu.png',
-                    fit: BoxFit.contain,
-                  ),
+                  child: Image.asset('assets/images/swu.png'),
                 ),
               ),
             ],
@@ -212,28 +206,20 @@ class _HomeScreenState extends State<HomeScreen> {
 
           const SizedBox(height: 25),
 
-          // Kartu profil putih
           GestureDetector(
             onTap: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (context) => const Biodata()),
-              );
+              Navigator.push(context,
+                MaterialPageRoute(builder: (_) => const Biodata()));
             },
+
             child: Container(
               width: double.infinity,
               padding: const EdgeInsets.all(14),
               decoration: BoxDecoration(
                 color: Colors.white,
                 borderRadius: BorderRadius.circular(20),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black12,
-                    blurRadius: 8,
-                    offset: Offset(0, 3),
-                  ),
-                ],
               ),
+
               child: Row(
                 children: [
                   CircleAvatar(
@@ -241,20 +227,16 @@ class _HomeScreenState extends State<HomeScreen> {
                     backgroundImage: hasFoto
                         ? NetworkImage(user!["foto"])
                         : const AssetImage("assets/images/default_user.png")
-                              as ImageProvider,
+                            as ImageProvider,
                   ),
+
                   const SizedBox(width: 12),
+
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(
-                          user?["nim"] ?? "NIM1234567890",
-                          style: const TextStyle(
-                            fontSize: 13,
-                            color: Colors.black87,
-                          ),
-                        ),
+                        Text(user?["nim"] ?? "NIM123456"),
                         const SizedBox(height: 2),
                         Text(
                           user?["nama"] ?? "Nama Mahasiswa",
@@ -266,29 +248,18 @@ class _HomeScreenState extends State<HomeScreen> {
                           ),
                         ),
                         const SizedBox(height: 2),
+
                         Row(
                           children: [
                             Expanded(
                               child: Text(
                                 user?["program_studi"]?["nama_prodi"] ??
                                     "Program Studi",
-                                maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
-                                style: const TextStyle(
-                                  fontSize: 13,
-                                  color: Colors.black54,
-                                ),
                               ),
                             ),
                             const SizedBox(width: 8),
-                            Text(
-                              "Angkatan ${user?["angkatan"] ?? "5"}",
-                              style: const TextStyle(
-                                fontSize: 13,
-                                fontWeight: FontWeight.w600,
-                                color: Colors.black87,
-                              ),
-                            ),
+                            Text("Angkatan ${user?["angkatan"] ?? "0"}"),
                           ],
                         ),
                       ],
@@ -303,13 +274,13 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  // MENU GRID ITEM
+  // MENU ITEM
   Widget _menuItem(String assetPath, String label, {VoidCallback? onTap}) {
     return InkWell(
       onTap: onTap,
       borderRadius: BorderRadius.circular(12),
+
       child: Column(
-        mainAxisSize: MainAxisSize.min,
         children: [
           Container(
             height: 70,
@@ -320,14 +291,12 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
             child: Padding(
               padding: const EdgeInsets.all(16),
-              child: Image.asset(
-                assetPath,
-                color: Colors.white,
-                fit: BoxFit.contain,
-              ),
+              child: Image.asset(assetPath, color: Colors.white),
             ),
           ),
+
           const SizedBox(height: 8),
+
           Text(
             label,
             textAlign: TextAlign.center,
