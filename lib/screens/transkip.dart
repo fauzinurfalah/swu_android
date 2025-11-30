@@ -27,7 +27,9 @@ class TranskipPage extends StatelessWidget {
     ];
 
     int totalSKS = transkipData.fold<int>(
-        0, (prev, item) => prev + (item['sks'] as int));
+      0,
+      (prev, item) => prev + (item['sks'] as int),
+    );
 
     return Scaffold(
       backgroundColor: const Color(0xFF7BA7E2),
@@ -112,7 +114,6 @@ class TranskipPage extends StatelessWidget {
                       ),
                     ),
 
-
                     const SizedBox(height: 10),
 
                     // 👤 Profil Mahasiswa
@@ -122,17 +123,21 @@ class TranskipPage extends StatelessWidget {
                         const CircleAvatar(
                           radius: 22,
                           backgroundImage: AssetImage(
-                              "assets/images/profile.png"), // bisa ganti
+                            "assets/images/profile.png",
+                          ), // bisa ganti
                         ),
                         const SizedBox(width: 10),
                         Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: const [
-                            Text("Kukuh Lisa",
-                                style: TextStyle(
-                                    fontWeight: FontWeight.bold)),
-                            Text("NIM: A11.2023.6211",
-                                style: TextStyle(fontSize: 13)),
+                            Text(
+                              "Kukuh Lisa",
+                              style: TextStyle(fontWeight: FontWeight.bold),
+                            ),
+                            Text(
+                              "NIM: A11.2023.6211",
+                              style: TextStyle(fontSize: 13),
+                            ),
                           ],
                         ),
                       ],
@@ -143,7 +148,9 @@ class TranskipPage extends StatelessWidget {
                     Text(
                       "Total SKS : $totalSKS SKS",
                       style: const TextStyle(
-                          fontSize: 16, fontWeight: FontWeight.bold),
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
 
                     const SizedBox(height: 12),
@@ -164,7 +171,9 @@ class TranskipPage extends StatelessWidget {
                     const Text(
                       "Transkrip Nilai",
                       style: TextStyle(
-                          fontWeight: FontWeight.bold, fontSize: 16),
+                        fontWeight: FontWeight.bold,
+                        fontSize: 16,
+                      ),
                     ),
                     const SizedBox(height: 8),
 
@@ -186,19 +195,15 @@ class TranskipPage extends StatelessWidget {
                           final item = transkipData[index];
 
                           return Padding(
-                            padding: const EdgeInsets.symmetric(
-                                vertical: 6),
+                            padding: const EdgeInsets.symmetric(vertical: 6),
                             child: Row(
                               children: [
+                                Expanded(flex: 6, child: Text(item['matkul'])),
                                 Expanded(
-                                    flex: 6,
-                                    child: Text(item['matkul'])),
-                                Expanded(
-                                    flex: 2,
-                                    child: Text(item['sks'].toString())),
-                                Expanded(
-                                    flex: 2,
-                                    child: Text(item['nilai'])),
+                                  flex: 2,
+                                  child: Text(item['sks'].toString()),
+                                ),
+                                Expanded(flex: 2, child: Text(item['nilai'])),
                               ],
                             ),
                           );
@@ -207,11 +212,13 @@ class TranskipPage extends StatelessWidget {
                     ),
 
                     // Tombol Cetak
-                                        ElevatedButton(
+                    ElevatedButton(
                       onPressed: () {},
                       style: ElevatedButton.styleFrom(
                         padding: const EdgeInsets.symmetric(
-                            horizontal: 30, vertical: 10),
+                          horizontal: 30,
+                          vertical: 10,
+                        ),
                         backgroundColor: Colors.blue,
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(12),
@@ -219,7 +226,11 @@ class TranskipPage extends StatelessWidget {
                       ),
                       child: const Text(
                         "Cetak",
-                        style: TextStyle(fontSize: 16),
+                        style: TextStyle(
+                          fontSize: 16,
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
                     ),
 
@@ -233,6 +244,7 @@ class TranskipPage extends StatelessWidget {
       ),
     );
   }
+
   Widget _ipsItem(String title, String value) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 2),
@@ -240,8 +252,7 @@ class TranskipPage extends StatelessWidget {
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           Text(title),
-          Text(value,
-              style: const TextStyle(fontWeight: FontWeight.bold)),
+          Text(value, style: const TextStyle(fontWeight: FontWeight.bold)),
         ],
       ),
     );
