@@ -1,12 +1,17 @@
-import 'dart:io';
+import 'dart:typed_data';
 
 import 'package:dio/dio.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:image_picker/image_picker.dart';
+import 'package:flutter_map/flutter_map.dart';
 import 'package:geolocator/geolocator.dart';
+import 'package:latlong2/latlong.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:intl/intl.dart';
 import '../api/api_service.dart';
+
+// Web-specific imports
+import 'webcam_helper.dart' if (dart.library.io) 'webcam_helper_stub.dart';
 
 class AbsenSubmitScreen extends StatefulWidget {
   final int idKrsDetail;
@@ -25,12 +30,14 @@ class AbsenSubmitScreen extends StatefulWidget {
 }
 
 class _AbsenSubmitScreenState extends State<AbsenSubmitScreen> {
-  XFile? _photoFile;
+  final WebCamera cam = WebCamera();
+
+  Uint8List? _photoBytes;
   Position? _position;
   bool _isSubmitting = false;
   bool _loading = true;
-  Map<String, dynamic>? _existing; // jika sudah terisi, data history
-  final ImagePicker _picker = ImagePicker();
+  bool _isCameraReady = false;
+  Map<String, dynamic>? _existing;
 
   @override
   void initState() {
@@ -40,7 +47,44 @@ class _AbsenSubmitScreenState extends State<AbsenSubmitScreen> {
 
   Future<void> _init() async {
     await _fetchExisting();
+    
+    if (_existing == null && kIsWeb) {
+      // Initialize camera only on web and if not submitted
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _initializeCameraAfterRender();
+      });
+    }
+    
     if (mounted) setState(() => _loading = false);
+  }
+
+  Future<void> _initializeCameraAfterRender() async {
+    try {
+      await Future.delayed(const Duration(milliseconds: 500));
+      await cam.initialize();
+      if (mounted) {
+        setState(() => _isCameraReady = true);
+        debugPrint("✅ Camera initialized successfully");
+      }
+    } catch (e) {
+      debugPrint("❌ Error init camera: $e");
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text("Gagal akses kamera: $e"),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
+  @override
+  void dispose() {
+    if (kIsWeb) {
+      cam.dispose();
+    }
+    super.dispose();
   }
 
   Future<void> _fetchExisting() async {
@@ -66,23 +110,32 @@ class _AbsenSubmitScreenState extends State<AbsenSubmitScreen> {
     }
   }
 
-  Future<void> _pickCamera() async {
+  Future<void> _takePicture() async {
     try {
-      final x = await _picker.pickImage(
-        source: ImageSource.camera,
-        maxWidth: 1200,
-        imageQuality: 80,
+      final data = await cam.capture();
+      setState(() => _photoBytes = data);
+      
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Foto berhasil diambil'),
+          backgroundColor: Colors.green,
+          duration: Duration(seconds: 2),
+        ),
       );
-      if (x != null) {
-        setState(() => _photoFile = x);
-      }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(const SnackBar(content: Text('Gagal membuka kamera')));
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Gagal mengambil foto: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
       }
     }
+  }
+
+  Future<void> _retakePicture() async {
+    setState(() => _photoBytes = null);
   }
 
   Future<void> _getLocation() async {
@@ -91,7 +144,10 @@ class _AbsenSubmitScreenState extends State<AbsenSubmitScreen> {
       if (!enabled) {
         if (mounted)
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Layanan lokasi tidak aktif')),
+            const SnackBar(
+              content: Text('Layanan lokasi tidak aktif'),
+              backgroundColor: Colors.orange,
+            ),
           );
         return;
       }
@@ -101,9 +157,12 @@ class _AbsenSubmitScreenState extends State<AbsenSubmitScreen> {
         perm = await Geolocator.requestPermission();
       if (perm == LocationPermission.deniedForever) {
         if (mounted)
-          ScaffoldMessenger.of(
-            context,
-          ).showSnackBar(const SnackBar(content: Text('Izin lokasi ditolak')));
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Izin lokasi ditolak'),
+              backgroundColor: Colors.red,
+            ),
+          );
         return;
       }
 
@@ -111,11 +170,22 @@ class _AbsenSubmitScreenState extends State<AbsenSubmitScreen> {
         desiredAccuracy: LocationAccuracy.high,
       );
       setState(() => _position = pos);
+      
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Lokasi berhasil diambil'),
+          backgroundColor: Colors.green,
+          duration: Duration(seconds: 2),
+        ),
+      );
     } catch (e) {
       if (mounted)
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(const SnackBar(content: Text('Gagal mengambil lokasi')));
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Gagal mengambil lokasi: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
     }
   }
 
@@ -125,16 +195,22 @@ class _AbsenSubmitScreenState extends State<AbsenSubmitScreen> {
       return;
     }
 
-    if (_photoFile == null) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('Foto belum diambil')));
+    if (_photoBytes == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Foto belum diambil'),
+          backgroundColor: Colors.orange,
+        ),
+      );
       return;
     }
     if (_position == null) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('Lokasi belum diambil')));
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Lokasi belum diambil'),
+          backgroundColor: Colors.orange,
+        ),
+      );
       return;
     }
 
@@ -148,9 +224,9 @@ class _AbsenSubmitScreenState extends State<AbsenSubmitScreen> {
       if (token != null) dio.options.headers['Authorization'] = 'Bearer $token';
       dio.options.validateStatus = (_) => true;
 
-      final file = await MultipartFile.fromFile(
-        _photoFile!.path,
-        filename: "absen_${DateTime.now().millisecondsSinceEpoch}.jpg",
+      final file = MultipartFile.fromBytes(
+        _photoBytes!,
+        filename: "absen_${DateTime.now().millisecondsSinceEpoch}.png",
       );
 
       final form = FormData.fromMap({
@@ -166,70 +242,33 @@ class _AbsenSubmitScreenState extends State<AbsenSubmitScreen> {
         data: form,
       );
 
-      final message = (res.data is Map)
-          ? (res.data['message'] ?? 'Submit berhasil')
-          : 'Submit berhasil';
-
-      // tampilkan overlay sukses lalu kembali dengan true
-      await showDialog(
-        context: context,
-        barrierDismissible: false,
-        builder: (ctx) => WillPopScope(
-          onWillPop: () async => false,
-          child: Dialog(
-            backgroundColor: Colors.transparent,
-            elevation: 0,
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Container(
-                  width: 260,
-                  padding: const EdgeInsets.symmetric(
-                    vertical: 26,
-                    horizontal: 18,
-                  ),
-                  decoration: BoxDecoration(
-                    color: Colors.green.shade600,
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Column(
-                    children: [
-                      const Icon(
-                        Icons.check_circle,
-                        color: Colors.white,
-                        size: 48,
-                      ),
-                      const SizedBox(height: 12),
-                      Text(
-                        'Submit Sukses',
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      const SizedBox(height: 6),
-                      Text(
-                        message,
-                        style: const TextStyle(color: Colors.white70),
-                        textAlign: TextAlign.center,
-                      ),
-                    ],
-                  ),
-                ),
-              ],
+      if (res.data['status'] == 200 || res.statusCode == 200) {
+        // Show success message
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('✅ Absensi berhasil disubmit'),
+              backgroundColor: Colors.green,
+              duration: Duration(seconds: 2),
             ),
-          ),
-        ),
-      );
-
-      // kembalikan hasil true ke halaman sebelumnya agar berubah menjadi hijau
-      Navigator.pop(context, true);
+          );
+        }
+        
+        // Wait a bit for user to see the snackbar
+        await Future.delayed(const Duration(milliseconds: 500));
+        
+        // Return true to indicate success
+        if (mounted) {
+          Navigator.pop(context, true);
+        }
+      } else {
+        throw Exception(res.data['message'] ?? 'Gagal submit');
+      }
     } catch (e) {
       if (mounted)
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Gagal submit absen'),
+          SnackBar(
+            content: Text('❌ Gagal submit absen: ${e.toString()}'),
             backgroundColor: Colors.red,
           ),
         );
@@ -238,106 +277,160 @@ class _AbsenSubmitScreenState extends State<AbsenSubmitScreen> {
     }
   }
 
-  Widget _buildHeader() {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 18),
-      decoration: const BoxDecoration(color: Colors.transparent),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Text(
-            'Presensi Mahasiswa',
-            style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
-          ),
-          const SizedBox(height: 6),
-          Text(
-            DateFormat("EEEE, d MMMM yyyy", "id_ID").format(DateTime.now()),
-            style: const TextStyle(color: Colors.black54),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            widget.namaMatkul,
-            style: const TextStyle(fontWeight: FontWeight.w600),
-          ),
-          const SizedBox(height: 4),
-          Text(
-            'Pertemuan ${widget.pertemuan}',
-            style: const TextStyle(color: Colors.black54),
-          ),
-        ],
-      ),
-    );
-  }
-
   Widget _buildNotSubmittedView() {
     return Column(
       children: [
-        // preview foto area
+        // Main Card
         Container(
-          width: double.infinity,
-          height: 220,
-          margin: const EdgeInsets.symmetric(horizontal: 16),
+          margin: const EdgeInsets.all(16),
+          padding: const EdgeInsets.all(20),
           decoration: BoxDecoration(
-            color: Colors.grey.shade200,
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: Colors.grey.shade300),
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(20),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.1),
+                blurRadius: 10,
+                offset: const Offset(0, 4),
+              ),
+            ],
           ),
-          child: _photoFile == null
-              ? Center(
-                  child: Text(
-                    'Belum ambil foto',
-                    style: TextStyle(color: Colors.grey.shade700),
-                  ),
-                )
-              : ClipRRect(
-                  borderRadius: BorderRadius.circular(12),
-                  child: Image.file(File(_photoFile!.path), fit: BoxFit.cover),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Header
+              const Text(
+                'Presensi Mahasiswa',
+                style: TextStyle(
+                  fontSize: 22,
+                  fontWeight: FontWeight.bold,
                 ),
-        ),
-        const SizedBox(height: 8),
-        ElevatedButton.icon(
-          onPressed: _pickCamera,
-          icon: const Icon(Icons.camera_alt),
-          label: const Text('Ambil Foto'),
-          style: ElevatedButton.styleFrom(
-            backgroundColor: Colors.white,
-            foregroundColor: Colors.blue,
+              ),
+              const SizedBox(height: 4),
+              Text(
+                'Pertemuan ${widget.pertemuan}',
+                style: const TextStyle(
+                  fontSize: 14,
+                  color: Colors.black87,
+                ),
+              ),
+              Text(
+                widget.namaMatkul,
+                style: const TextStyle(
+                  fontSize: 14,
+                  color: Colors.black87,
+                ),
+              ),
+              
+              const SizedBox(height: 16),
+              
+              // Camera / Photo Preview
+              Container(
+                width: double.infinity,
+                height: 220,
+                decoration: BoxDecoration(
+                  color: Colors.grey.shade200,
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(12),
+                  child: _photoBytes != null
+                      ? Image.memory(_photoBytes!, fit: BoxFit.cover)
+                      : (kIsWeb && _isCameraReady
+                          ? const HtmlElementView(viewType: 'webcam-view')
+                          : Center(
+                              child: Column(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  if (!_isCameraReady && kIsWeb) ...[
+                                    const CircularProgressIndicator(),
+                                    const SizedBox(height: 12),
+                                    const Text('Memuat kamera...'),
+                                  ] else
+                                    const Icon(
+                                      Icons.camera_alt,
+                                      size: 64,
+                                      color: Colors.grey,
+                                    ),
+                                ],
+                              ),
+                            )),
+                ),
+              ),
+              
+              const SizedBox(height: 12),
+              
+              // Ambil Foto Button
+              Center(
+                child: OutlinedButton(
+                  onPressed: _photoBytes == null
+                      ? (_isCameraReady || !kIsWeb ? _takePicture : null)
+                      : _retakePicture,
+                  style: OutlinedButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 32,
+                      vertical: 10,
+                    ),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(25),
+                    ),
+                  ),
+                  child: Text(_photoBytes == null ? 'Ambil Foto' : 'Foto Ulang'),
+                ),
+              ),
+            ],
           ),
         ),
 
-        const SizedBox(height: 18),
-
-        // lokasi preview
+        // Location Card
         Container(
-          width: double.infinity,
           margin: const EdgeInsets.symmetric(horizontal: 16),
-          padding: const EdgeInsets.all(12),
+          padding: const EdgeInsets.all(20),
           decoration: BoxDecoration(
-            color: Colors.grey.shade100,
-            borderRadius: BorderRadius.circular(8),
-            border: Border.all(color: Colors.grey.shade300),
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(20),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.1),
+                blurRadius: 10,
+                offset: const Offset(0, 4),
+              ),
+            ],
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               const Text(
-                'Lokasi:',
-                style: TextStyle(fontWeight: FontWeight.w600),
+                'Lokasi :',
+                style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
               const SizedBox(height: 8),
               Text(
-                _position == null
-                    ? 'Belum diambil'
-                    : 'Lat: ${_position!.latitude}, Long: ${_position!.longitude}',
+                _position != null
+                    ? 'Lat : ${_position!.latitude.toStringAsFixed(6)}\nLong : ${_position!.longitude.toStringAsFixed(6)}'
+                    : 'Belum diambil',
+                style: const TextStyle(fontSize: 13),
               ),
-              const SizedBox(height: 8),
-              ElevatedButton.icon(
-                onPressed: _getLocation,
-                icon: const Icon(Icons.my_location),
-                label: const Text('Ambil Lokasi'),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.white,
-                  foregroundColor: Colors.blue,
+              const SizedBox(height: 4),
+              Text(
+                'Waktu : ${DateFormat("HH.mm").format(DateTime.now())}',
+                style: const TextStyle(fontSize: 13),
+              ),
+              const SizedBox(height: 12),
+              SizedBox(
+                width: double.infinity,
+                child: OutlinedButton(
+                  onPressed: _getLocation,
+                  style: OutlinedButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(vertical: 10),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(25),
+                    ),
+                  ),
+                  child: const Text('Ambil Lokasi & Waktu'),
                 ),
               ),
             ],
@@ -345,189 +438,271 @@ class _AbsenSubmitScreenState extends State<AbsenSubmitScreen> {
         ),
 
         const SizedBox(height: 20),
+        
+        // Hadir Button
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 16),
           child: SizedBox(
             width: double.infinity,
-            height: 48,
+            height: 50,
             child: ElevatedButton(
               onPressed: _isSubmitting ? null : _submit,
               style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF42A5F5),
+                backgroundColor: Colors.white,
+                foregroundColor: Colors.black,
+                elevation: 2,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(30),
+                ),
               ),
               child: _isSubmitting
-                  ? const CircularProgressIndicator(color: Colors.white)
-                  : const Text('Hadir'),
+                  ? const SizedBox(
+                      height: 20,
+                      width: 20,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : const Text(
+                      'Hadir',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
             ),
           ),
         ),
+        const SizedBox(height: 30),
       ],
     );
   }
 
   Widget _buildSubmittedView() {
-    // gunakan data dari _existing
     final fotoUrl =
         _existing?['foto'] ?? _existing?['file'] ?? _existing?['url_foto'];
-    final lat = _existing?['latitude'] ?? _existing?['lat'];
-    final lon =
-        _existing?['longitude'] ?? _existing?['lng'] ?? _existing?['long'];
+    final lat = double.tryParse(
+        (_existing?['latitude'] ?? _existing?['lat'] ?? '0').toString());
+    final lon = double.tryParse(
+        (_existing?['longitude'] ?? _existing?['lng'] ?? _existing?['long'] ?? '0')
+            .toString());
     final waktu =
         _existing?['created_at'] ?? _existing?['waktu'] ?? _existing?['time'];
 
     return Column(
       children: [
+        // Main Card
         Container(
-          width: double.infinity,
-          height: 220,
-          margin: const EdgeInsets.symmetric(horizontal: 16),
+          margin: const EdgeInsets.all(16),
+          padding: const EdgeInsets.all(20),
           decoration: BoxDecoration(
-            color: Colors.grey.shade100,
-            borderRadius: BorderRadius.circular(12),
-          ),
-          child: fotoUrl != null
-              ? ClipRRect(
-                  borderRadius: BorderRadius.circular(12),
-                  child: Image.network(
-                    fotoUrl.toString(),
-                    fit: BoxFit.cover,
-                    errorBuilder: (_, __, ___) =>
-                        const Center(child: Icon(Icons.broken_image)),
-                  ),
-                )
-              : const Center(
-                  child: Icon(Icons.image, size: 48, color: Colors.grey),
-                ),
-        ),
-        const SizedBox(height: 12),
-
-        Container(
-          width: double.infinity,
-          margin: const EdgeInsets.symmetric(horizontal: 16),
-          padding: const EdgeInsets.all(12),
-          decoration: BoxDecoration(
-            color: Colors.grey.shade100,
-            borderRadius: BorderRadius.circular(8),
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(20),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.1),
+                blurRadius: 10,
+                offset: const Offset(0, 4),
+              ),
+            ],
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(
-                'Pertemuan: ${widget.pertemuan}',
-                style: const TextStyle(fontWeight: FontWeight.w600),
+              // Header
+              const Text(
+                'Presensi Mahasiswa',
+                style: TextStyle(
+                  fontSize: 22,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
-              const SizedBox(height: 6),
-              Text('Latitude: ${lat ?? '-'}'),
-              Text('Longitude: ${lon ?? '-'}'),
-              const SizedBox(height: 6),
-              Text('Waktu: ${waktu ?? '-'}'),
+              const SizedBox(height: 4),
+              Text(
+                'Pertemuan ${widget.pertemuan}',
+                style: const TextStyle(
+                  fontSize: 14,
+                  color: Colors.black87,
+                ),
+              ),
+              Text(
+                widget.namaMatkul,
+                style: const TextStyle(
+                  fontSize: 14,
+                  color: Colors.black87,
+                ),
+              ),
+              
+              const SizedBox(height: 16),
+              
+              // Photo
+              Container(
+                width: double.infinity,
+                height: 220,
+                decoration: BoxDecoration(
+                  color: Colors.grey.shade200,
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: fotoUrl != null
+                    ? ClipRRect(
+                        borderRadius: BorderRadius.circular(12),
+                        child: Image.network(
+                          fotoUrl.toString(),
+                          fit: BoxFit.cover,
+                          errorBuilder: (_, __, ___) =>
+                              const Center(child: Icon(Icons.broken_image)),
+                        ),
+                      )
+                    : const Center(
+                        child: Icon(Icons.image, size: 48, color: Colors.grey),
+                      ),
+              ),
+              
+              const SizedBox(height: 16),
+              
+              // Map
+              Container(
+                width: double.infinity,
+                height: 180,
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: Colors.grey.shade300),
+                ),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(12),
+                  child: (lat != null && lon != null)
+                      ? FlutterMap(
+                          options: MapOptions(
+                            initialCenter: LatLng(lat, lon),
+                            initialZoom: 15.0,
+                          ),
+                          children: [
+                            TileLayer(
+                              urlTemplate:
+                                  'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+                              userAgentPackageName: 'com.example.app',
+                            ),
+                            MarkerLayer(
+                              markers: [
+                                Marker(
+                                  point: LatLng(lat, lon),
+                                  width: 40,
+                                  height: 40,
+                                  child: const Icon(
+                                    Icons.location_on,
+                                    color: Colors.red,
+                                    size: 40,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ],
+                        )
+                      : const Center(child: Text("Lokasi tidak valid")),
+                ),
+              ),
+
+              const SizedBox(height: 16),
+
+              // Details
+              Text(
+                'Pertemuan : ${widget.pertemuan}',
+                style: const TextStyle(fontSize: 13),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                'Latitude : ${lat?.toStringAsFixed(6) ?? '-'}',
+                style: const TextStyle(fontSize: 13),
+              ),
+              Text(
+                'Longitude : ${lon?.toStringAsFixed(6) ?? '-'}',
+                style: const TextStyle(fontSize: 13),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                'Waktu : ${waktu ?? '-'}',
+                style: const TextStyle(fontSize: 13),
+              ),
             ],
           ),
         ),
 
         const SizedBox(height: 16),
+        
+        // Anda Hadir Button
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 16),
           child: SizedBox(
             width: double.infinity,
-            height: 48,
+            height: 50,
             child: ElevatedButton(
-              onPressed: () => Navigator.pop(context, true),
+              onPressed: () {}, // Already submitted
               style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.green.shade600,
+                backgroundColor: Colors.white,
+                foregroundColor: Colors.green.shade700,
+                elevation: 2,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(30),
+                  side: BorderSide(color: Colors.green.shade700, width: 2),
+                ),
               ),
-              child: const Text('Hadir'),
+              child: const Text(
+                'Anda Hadir',
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
             ),
           ),
         ),
+        const SizedBox(height: 30),
       ],
     );
   }
 
   @override
   Widget build(BuildContext context) {
-    // logo kampus di pojok kanan atas (sama gaya seperti input_krs_screen)
-    final logoWidget = Container(
-      height: 40,
-      width: 40,
-      decoration: BoxDecoration(
-        color: Colors.white,
-        shape: BoxShape.circle,
-        boxShadow: const [
-          BoxShadow(color: Colors.black26, blurRadius: 4, offset: Offset(0, 2)),
-        ],
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(6),
-        child: Image.asset('assets/images/swu.png', fit: BoxFit.contain),
-      ),
-    );
+    // Determine background color based on status
+    final bgColor = _existing != null 
+        ? const Color(0xFF4CAF50) // Green
+        : const Color(0xFF95A5A6);  // Gray
 
     return Scaffold(
-      backgroundColor: const Color(0xFF7BA7E2),
-      body: SafeArea(
-        child: Column(
-          children: [
-            // top bar
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-              color: const Color(0xFF7BA7E2),
-              child: Row(
-                children: [
-                  IconButton(
-                    icon: const Icon(
-                      Icons.arrow_back_ios_new,
-                      color: Colors.white,
-                    ),
-                    onPressed: () => Navigator.pop(context),
-                  ),
-                  const SizedBox(width: 6),
-                  const Expanded(
-                    child: Text(
-                      'Submit Presensi',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ),
-                  logoWidget,
-                ],
-              ),
-            ),
-
-            // white rounded header (tidak menampilkan foto user)
-            Container(
-              width: double.infinity,
-              decoration: const BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.only(
-                  topLeft: Radius.circular(28),
-                  topRight: Radius.circular(28),
-                ),
-              ),
-              child: _buildHeader(),
-            ),
-
-            // content area
-            Expanded(
-              child: Container(
-                color: Colors.white,
-                padding: const EdgeInsets.only(top: 12),
-                child: _loading
-                    ? const Center(child: CircularProgressIndicator())
-                    : SingleChildScrollView(
-                        padding: const EdgeInsets.symmetric(vertical: 12),
-                        child: _existing == null
-                            ? _buildNotSubmittedView()
-                            : _buildSubmittedView(),
-                      ),
-              ),
-            ),
-          ],
+      backgroundColor: bgColor,
+      appBar: AppBar(
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back_ios_new, color: Colors.black),
+          onPressed: () => Navigator.pop(context),
         ),
+        title: const Text(
+          'Submit Presensi',
+          style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold),
+        ),
+        centerTitle: false,
+        actions: [
+          Padding(
+            padding: const EdgeInsets.only(right: 16),
+            child: CircleAvatar(
+              radius: 18,
+              backgroundColor: Colors.blue,
+              child: Image.asset(
+                'assets/images/swu.png',
+                width: 20,
+                errorBuilder: (_, __, ___) =>
+                    const Icon(Icons.school, color: Colors.white, size: 20),
+              ),
+            ),
+          ),
+        ],
       ),
+      body: _loading
+          ? const Center(child: CircularProgressIndicator(color: Colors.white))
+          : SingleChildScrollView(
+              child: _existing == null
+                  ? _buildNotSubmittedView()
+                  : _buildSubmittedView(),
+            ),
     );
   }
 }

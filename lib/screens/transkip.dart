@@ -1,7 +1,50 @@
+import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import '../api/api_service.dart';
 
-class TranskipPage extends StatelessWidget {
+class TranskipPage extends StatefulWidget {
   const TranskipPage({super.key});
+
+  @override
+  State<TranskipPage> createState() => _TranskipPageState();
+}
+
+class _TranskipPageState extends State<TranskipPage> {
+  Map<String, dynamic>? user;
+
+  @override
+  void initState() {
+    super.initState();
+    _getMahasiswaData();
+  }
+
+  Future<void> _getMahasiswaData() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final token = prefs.getString("auth_token");
+      final email = prefs.getString("auth_email");
+
+      Dio dio = Dio();
+      if (token != null) {
+        dio.options.headers['Authorization'] = 'Bearer $token';
+      }
+      dio.options.headers['Content-type'] = 'application/json';
+
+      final response = await dio.post(
+        "${ApiService.baseUrl}mahasiswa/detail-mahasiswa",
+        data: {"email": email},
+      );
+
+      if (mounted) {
+        setState(() {
+          user = response.data["data"];
+        });
+      }
+    } catch (e) {
+      print("Error getMahasiswa: $e");
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -30,6 +73,9 @@ class TranskipPage extends StatelessWidget {
       0,
       (prev, item) => prev + (item['sks'] as int),
     );
+
+    final hasFoto = (user?["foto"] != null &&
+        (user?["foto"]?.toString().isNotEmpty ?? false));
 
     return Scaffold(
       backgroundColor: const Color(0xFF7BA7E2),
@@ -120,23 +166,24 @@ class TranskipPage extends StatelessWidget {
                     Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        const CircleAvatar(
+                        CircleAvatar(
                           radius: 22,
-                          backgroundImage: AssetImage(
-                            "assets/images/profile.png",
-                          ), // bisa ganti
+                          backgroundImage: hasFoto
+                              ? NetworkImage(user!["foto"])
+                              : const AssetImage("assets/images/profile.png")
+                                  as ImageProvider,
                         ),
                         const SizedBox(width: 10),
                         Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
-                          children: const [
+                          children: [
                             Text(
-                              "Kukuh Lisa",
-                              style: TextStyle(fontWeight: FontWeight.bold),
+                              user?["nama"] ?? "Nama Mahasiswa",
+                              style: const TextStyle(fontWeight: FontWeight.bold),
                             ),
                             Text(
-                              "NIM: A11.2023.6211",
-                              style: TextStyle(fontSize: 13),
+                              "NIM: ${user?["nim"] ?? "-"}",
+                              style: const TextStyle(fontSize: 13),
                             ),
                           ],
                         ),
@@ -224,13 +271,20 @@ class TranskipPage extends StatelessWidget {
                           borderRadius: BorderRadius.circular(12),
                         ),
                       ),
-                      child: const Text(
-                        "Cetak",
-                        style: TextStyle(
-                          fontSize: 16,
-                          color: Colors.white,
-                          fontWeight: FontWeight.bold,
-                        ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: const [
+                          Icon(Icons.picture_as_pdf, color: Colors.white),
+                          SizedBox(width: 8),
+                          Text(
+                            "Cetak",
+                            style: TextStyle(
+                              fontSize: 16,
+                              color: Colors.white,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ],
                       ),
                     ),
 
