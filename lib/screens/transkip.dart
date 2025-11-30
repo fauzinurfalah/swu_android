@@ -30,41 +30,76 @@ class TranskipPage extends StatelessWidget {
         0, (prev, item) => prev + (item['sks'] as int));
 
     return Scaffold(
-      backgroundColor: Colors.blue.shade300,
+      backgroundColor: const Color(0xFF7BA7E2),
       body: SafeArea(
         child: Column(
           children: [
             const SizedBox(height: 16),
 
-            // 🔍 Search Bar
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              child: TextField(
-                decoration: InputDecoration(
-                  filled: true,
-                  fillColor: Colors.white,
-                  hintText: "Cari Semester, Pengajar, Matkul...",
-                  prefixIcon: const Icon(Icons.search),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: BorderSide.none,
+            // Header biru dengan back dan logo
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+              color: const Color(0xFF7BA7E2),
+              child: Row(
+                children: [
+                  IconButton(
+                    icon: const Icon(
+                      Icons.arrow_back_ios_new,
+                      color: Colors.white,
+                    ),
+                    onPressed: () => Navigator.of(context).pop(),
                   ),
-                ),
+                  const SizedBox(width: 6),
+                  const Expanded(
+                    child: Text(
+                      'Transkip Nilai',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                  // logo kanan atas
+                  Container(
+                    height: 46,
+                    width: 46,
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      shape: BoxShape.circle,
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black26,
+                          blurRadius: 5,
+                          offset: Offset(0, 2),
+                        ),
+                      ],
+                    ),
+                    child: Padding(
+                      padding: const EdgeInsets.all(6),
+                      child: Image.asset(
+                        'assets/images/swu.png',
+                        fit: BoxFit.contain,
+                      ),
+                    ),
+                  ),
+                ],
               ),
             ),
-
-            const SizedBox(height: 20),
-
             // 🔹 Container Putih Besar
             Expanded(
               child: Container(
                 width: double.infinity,
-                padding:
-                    const EdgeInsets.only(top: 20, left: 16, right: 16),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 20,
+                  vertical: 16,
+                ),
                 decoration: const BoxDecoration(
                   color: Colors.white,
-                  borderRadius:
-                      BorderRadius.vertical(top: Radius.circular(30)),
+                  borderRadius: BorderRadius.only(
+                    topLeft: Radius.circular(28),
+                    topRight: Radius.circular(28),
+                  ),
                 ),
                 child: Column(
                   children: [
@@ -76,6 +111,7 @@ class TranskipPage extends StatelessWidget {
                         fontWeight: FontWeight.bold,
                       ),
                     ),
+
 
                     const SizedBox(height: 10),
 
