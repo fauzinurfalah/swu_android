@@ -1,5 +1,3 @@
-// jadwal_page.dart
-// no direct json decoding needed; Dio handles response parsing
 import 'package:flutter/material.dart';
 import 'package:dio/dio.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -16,9 +14,9 @@ class Event {
   final String ruang;
   final String jamMulai;
   final String jamSelesai;
-  final String tipe; // optional
-  final String materi; // optional
-  final String linkZoom; // optional
+  final String tipe;
+  final String materi;
+  final String linkZoom;
 
   Event({
     required this.id,
@@ -42,6 +40,8 @@ class JadwalPage extends StatefulWidget {
 }
 
 class _JadwalPageState extends State<JadwalPage> {
+  static const String _selectedKrsPrefKey = 'selected_krs_id';
+
   Map<DateTime, List<Event>> _events = {};
   DateTime _focusedDay = DateTime.now();
   DateTime? _selectedDay;
@@ -56,7 +56,6 @@ class _JadwalPageState extends State<JadwalPage> {
   void initState() {
     super.initState();
     _selectedDay = _focusedDay;
-    // load user's KRS list then load filter for default selection and events
     _initKrsAndEvents();
   }
 
@@ -103,12 +102,21 @@ class _JadwalPageState extends State<JadwalPage> {
       );
       if (response.statusCode == 200) {
         final List<dynamic> list = response.data['data'] ?? [];
+
+        final savedId = prefs.getInt(_selectedKrsPrefKey);
+
+        int? selectedId;
+        if (list.isNotEmpty) {
+          if (savedId != null && list.any((k) => k['id'] == savedId)) {
+            selectedId = savedId;
+          } else {
+            selectedId = list.first['id'] as int?;
+          }
+        }
+
         setState(() {
           _daftarKrs = list;
-          if (list.isNotEmpty) {
-            // default select first (you can choose other policy)
-            _selectedKrsId = list.first['id'];
-          }
+          _selectedKrsId = selectedId;
         });
       } else {
         setState(() => _daftarKrs = []);
@@ -194,7 +202,7 @@ class _JadwalPageState extends State<JadwalPage> {
   // Try to parse various formats returned by API into a weekday int (1..7)
   int? _weekdayFrom(dynamic raw) {
     if (raw == null) return null;
-    // If already an int
+
     if (raw is int) {
       if (raw >= 1 && raw <= 7) return raw;
       return null;
@@ -240,11 +248,9 @@ class _JadwalPageState extends State<JadwalPage> {
       'mg': DateTime.sunday,
     };
 
-    // direct mapping from full Indonesian name
     if (_hariToWeekday.containsKey(s)) return _hariToWeekday[s];
     if (alt.containsKey(s)) return alt[s];
 
-    // sometimes API returns like "Senin, Rabu" or "Senin / Rabu" - take first
     final first = s.split(RegExp(r'[,/\\|;]')).first.trim();
     if (first.isNotEmpty) {
       if (_hariToWeekday.containsKey(first)) return _hariToWeekday[first];
@@ -261,7 +267,6 @@ class _JadwalPageState extends State<JadwalPage> {
     });
 
     try {
-      // Use Dio and include auth token from SharedPreferences (like KRS page)
       final prefs = await SharedPreferences.getInstance();
       final token = prefs.getString('auth_token');
 
@@ -284,12 +289,10 @@ class _JadwalPageState extends State<JadwalPage> {
 
       final List<dynamic> jadwals =
           response.data['jadwals'] ?? response.data['data'] ?? [];
-
-      // Use filter sets loaded from selected KRS (if any)
+          
       final Set<int> existingJadwalIds = _filterJadwalIds;
       final Set<String> existingNames = _filterNames;
 
-      // Build events map for the visible month range
       final lastDayOfMonth = DateTime(monthFocus.year, monthFocus.month + 1, 0);
 
       Map<DateTime, List<Event>> newEvents = {};
@@ -299,7 +302,6 @@ class _JadwalPageState extends State<JadwalPage> {
         final weekday = _weekdayFrom(namaHariRaw);
         if (weekday == null) continue; // unknown day
 
-        // Filter: only include jadwal that matches user's KRS courses
         bool matchesKrs = false;
         try {
           final jid = j['id'] is int
@@ -313,8 +315,9 @@ class _JadwalPageState extends State<JadwalPage> {
             .toLowerCase();
         if (!matchesKrs &&
             namaMatkulFromApi.isNotEmpty &&
-            existingNames.contains(namaMatkulFromApi))
+            existingNames.contains(namaMatkulFromApi)) {
           matchesKrs = true;
+        }
 
         if (!matchesKrs) continue;
 
@@ -331,7 +334,6 @@ class _JadwalPageState extends State<JadwalPage> {
           linkZoom: j['link_zoom'] ?? '',
         );
 
-        // Walk through the days of the month and add event when weekday matches
         for (int d = 1; d <= lastDayOfMonth.day; d++) {
           final dt = DateTime(monthFocus.year, monthFocus.month, d);
           if (dt.weekday == weekday) {
@@ -354,14 +356,10 @@ class _JadwalPageState extends State<JadwalPage> {
     }
   }
 
-  // Helper: fetch user's KRS and return two sets: existing jadwal ids and lowercased mata kuliah names
-  // NOTE: older helper to auto-select KRS is removed — dropdown + explicit loaders are used instead.
-
   List<Event> _getEventsForDay(DateTime day) {
     return _events[_dateOnly(day)] ?? [];
   }
 
-  // Called when page changes (month navigation)
   void _onPageChanged(DateTime focusedDay) {
     _focusedDay = focusedDay;
     _fetchAndBuildEventsForMonth(_focusedDay);
@@ -378,7 +376,7 @@ class _JadwalPageState extends State<JadwalPage> {
         elevation: 0,
         backgroundColor: Colors.white,
         centerTitle: false,
-        title: Text('', style: TextStyle(color: Colors.black)),
+        title: const Text('', style: TextStyle(color: Colors.black)),
         actions: [
           Padding(
             padding: const EdgeInsets.only(right: 16.0),
@@ -394,9 +392,7 @@ class _JadwalPageState extends State<JadwalPage> {
               padding: const EdgeInsets.symmetric(horizontal: 16.0),
               child: Column(
                 children: [
-                  // Dropdown KRS (if user has any)
                   if (_daftarKrs.isNotEmpty)
-                    // Styled dropdown: blue background, white text, padding, rounded
                     Padding(
                       padding: const EdgeInsets.only(bottom: 6.0),
                       child: Container(
@@ -405,13 +401,13 @@ class _JadwalPageState extends State<JadwalPage> {
                           vertical: 6,
                         ),
                         decoration: BoxDecoration(
-                          color: Color(0xFF7BA7E2), // dominant blue
+                          color: const Color(0xFF7BA7E2), 
                           borderRadius: BorderRadius.circular(12),
                         ),
                         child: DropdownButton<int>(
                           isExpanded: true,
                           value: _selectedKrsId,
-                          dropdownColor: Color(0xFF7BA7E2),
+                          dropdownColor: const Color(0xFF7BA7E2),
                           underline: const SizedBox.shrink(),
                           iconEnabledColor: Colors.white,
                           style: const TextStyle(
@@ -420,11 +416,12 @@ class _JadwalPageState extends State<JadwalPage> {
                           ),
                           items: _daftarKrs.map((krs) {
                             final id = krs['id'] as int?;
-                            final semester = krs['semester']?.toString() ?? '-';
+                            final semester =
+                                krs['semester']?.toString() ?? '-';
                             final tahun =
                                 (krs['tahun_ajaran'] ?? krs['tahun'])
-                                    ?.toString() ??
-                                '-';
+                                        ?.toString() ??
+                                    '-';
                             return DropdownMenuItem<int>(
                               value: id,
                               child: Text(
@@ -435,10 +432,16 @@ class _JadwalPageState extends State<JadwalPage> {
                           }).toList(),
                           onChanged: (val) async {
                             if (val == null) return;
+
                             setState(() {
                               _selectedKrsId = val;
                               _loading = true;
                             });
+
+                            final prefs =
+                                await SharedPreferences.getInstance();
+                            await prefs.setInt(_selectedKrsPrefKey, val);
+
                             await _loadKrsDetailToFilter(val);
                             await _fetchAndBuildEventsForMonth(_focusedDay);
                           },
@@ -446,7 +449,7 @@ class _JadwalPageState extends State<JadwalPage> {
                       ),
                     ),
 
-                  // Title "Oktober, 2025" like sample
+
                   const SizedBox(height: 4),
                   Text(
                     monthTitle,
@@ -461,28 +464,29 @@ class _JadwalPageState extends State<JadwalPage> {
                     lastDay: DateTime.utc(2100, 12, 31),
                     focusedDay: _focusedDay,
                     eventLoader: _getEventsForDay,
-                    selectedDayPredicate: (day) => isSameDay(_selectedDay, day),
+                    selectedDayPredicate: (day) =>
+                        isSameDay(_selectedDay, day),
                     startingDayOfWeek: StartingDayOfWeek.sunday,
                     locale: 'id_ID',
                     headerVisible: false, // hide default header
                     calendarStyle: CalendarStyle(
                       outsideDaysVisible: true,
                       markersMaxCount: 1,
-                      // Make today's and selected day's circle transparent (no fill)
-                      // but keep the outline border color. Also set the text color
-                      // to match the outline so it visually "inverts" on selection/today.
                       todayDecoration: BoxDecoration(
                         shape: BoxShape.circle,
-                        color: const Color.fromARGB(255, 131, 174, 255),
+                        color:
+                            const Color.fromARGB(255, 131, 174, 255),
                         border: Border.all(
-                          color: const Color.fromARGB(255, 156, 196, 255),
+                          color:
+                              const Color.fromARGB(255, 156, 196, 255),
                         ),
                       ),
                       selectedDecoration: BoxDecoration(
                         shape: BoxShape.circle,
                         color: Colors.transparent,
                         border: Border.all(
-                          color: const Color.fromARGB(255, 131, 174, 255),
+                          color:
+                              const Color.fromARGB(255, 131, 174, 255),
                         ),
                       ),
                       todayTextStyle: const TextStyle(
@@ -494,7 +498,7 @@ class _JadwalPageState extends State<JadwalPage> {
                         fontWeight: FontWeight.bold,
                       ),
                     ),
-                    daysOfWeekStyle: DaysOfWeekStyle(
+                    daysOfWeekStyle: const DaysOfWeekStyle(
                       weekdayStyle: TextStyle(fontWeight: FontWeight.w500),
                       weekendStyle: TextStyle(color: Colors.red),
                     ),
@@ -517,7 +521,7 @@ class _JadwalPageState extends State<JadwalPage> {
                                 right: 6,
                                 bottom: 6,
                               ),
-                              decoration: BoxDecoration(
+                              decoration: const BoxDecoration(
                                 color: Colors.blue,
                                 shape: BoxShape.circle,
                               ),
@@ -527,7 +531,7 @@ class _JadwalPageState extends State<JadwalPage> {
                         return const SizedBox.shrink();
                       },
                       dowBuilder: (context, day) {
-                        // Map DateTime.weekday (Mon=1..Sun=7) to Indonesian short names
+
                         const Map<int, String> names = {
                           DateTime.monday: 'Sen',
                           DateTime.tuesday: 'Sel',
@@ -541,9 +545,9 @@ class _JadwalPageState extends State<JadwalPage> {
                         return Center(
                           child: Text(
                             label,
-                            style: TextStyle(
+                            style: const TextStyle(
                               fontSize: 12,
-                              color: const Color.fromARGB(255, 5, 1, 1),
+                              color: Color.fromARGB(255, 5, 1, 1),
                             ),
                           ),
                         );
@@ -551,7 +555,6 @@ class _JadwalPageState extends State<JadwalPage> {
                     ),
                   ),
 
-                  // Prev / Next custom buttons like sample
                   const SizedBox(height: 8),
                   Row(
                     mainAxisAlignment: MainAxisAlignment.center,
@@ -574,7 +577,7 @@ class _JadwalPageState extends State<JadwalPage> {
                             shape: BoxShape.circle,
                           ),
                           padding: const EdgeInsets.all(8),
-                          child: Icon(
+                          child: const Icon(
                             Icons.chevron_left,
                             color: Colors.black87,
                           ),
@@ -599,7 +602,7 @@ class _JadwalPageState extends State<JadwalPage> {
                             shape: BoxShape.circle,
                           ),
                           padding: const EdgeInsets.all(8),
-                          child: Icon(
+                          child: const Icon(
                             Icons.chevron_right,
                             color: Colors.black87,
                           ),
@@ -613,13 +616,12 @@ class _JadwalPageState extends State<JadwalPage> {
               ),
             ),
 
-            // Body: events list or message
             Expanded(
               child: _loading
-                  ? Center(child: CircularProgressIndicator())
+                  ? const Center(child: CircularProgressIndicator())
                   : _error.isNotEmpty
-                  ? Center(child: Text(_error))
-                  : _buildEventList(),
+                      ? Center(child: Text(_error))
+                      : _buildEventList(),
             ),
           ],
         ),
@@ -650,13 +652,12 @@ class _JadwalPageState extends State<JadwalPage> {
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: const Color(0xFF8FB1F3), // soft blue similar to sample
+        color: const Color(0xFF8FB1F3), 
         borderRadius: BorderRadius.circular(12),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Title row: "#127 Mobile Programming (Introduction)" style
           Text(
             '${e.kode} ${e.namaMatkul}',
             style: const TextStyle(
@@ -665,7 +666,6 @@ class _JadwalPageState extends State<JadwalPage> {
             ),
           ),
           const SizedBox(height: 6),
-          // dosen and pertemuan etc (we only have dosen)
           Text(
             e.dosen,
             style: const TextStyle(color: Colors.white70, fontSize: 12),
@@ -683,30 +683,31 @@ class _JadwalPageState extends State<JadwalPage> {
                 style: const TextStyle(color: Colors.white70, fontSize: 12),
               ),
               const SizedBox(width: 12),
-              Text(
+              const Text(
                 'Luring',
-                style: const TextStyle(color: Colors.white70, fontSize: 12),
-              ), // tipe mocked
+                style: TextStyle(color: Colors.white70, fontSize: 12),
+              ), 
             ],
           ),
           const SizedBox(height: 10),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              // left: Link Zoom, Presensi, Materi buttons
+
               Expanded(
                 child: Row(
                   children: [
-                    // Link Zoom button: white bg, dark blue text, zoom-like icon left
+
                     ElevatedButton.icon(
                       onPressed: () {
                         if (e.linkZoom.isNotEmpty) {
-                          // open link if exists (implement using url_launcher)
+
                         } else {
-                          // no link available
+
                         }
                       },
-                      icon: Icon(Icons.videocam, color: Colors.blue.shade900),
+                      icon: Icon(Icons.videocam,
+                          color: Colors.blue.shade900),
                       label: Text(
                         'Link Zoom',
                         style: TextStyle(color: Colors.blue.shade900),
@@ -725,7 +726,6 @@ class _JadwalPageState extends State<JadwalPage> {
                     ),
                     const SizedBox(width: 8),
 
-                    // Presensi button: white bg, green text, check icon, navigates to AbsensiScreen
                     ElevatedButton.icon(
                       onPressed: () {
                         Navigator.push(
@@ -744,7 +744,8 @@ class _JadwalPageState extends State<JadwalPage> {
                       ),
                       label: Text(
                         'Presensi',
-                        style: TextStyle(color: Colors.green.shade700),
+                        style:
+                            TextStyle(color: Colors.green.shade700),
                       ),
                       style: ElevatedButton.styleFrom(
                         backgroundColor: Colors.white,
@@ -767,10 +768,12 @@ class _JadwalPageState extends State<JadwalPage> {
                 onPressed: () {
                   // download / open materi
                 },
-                icon: Icon(Icons.picture_as_pdf, color: Colors.red.shade700),
+                icon: Icon(Icons.picture_as_pdf,
+                    color: Colors.red.shade700),
                 label: Text(
                   e.materi.isNotEmpty ? e.materi : 'materi.pdf',
-                  style: TextStyle(color: Colors.red.shade700, fontSize: 12),
+                  style: TextStyle(
+                      color: Colors.red.shade700, fontSize: 12),
                 ),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.white,
@@ -791,6 +794,4 @@ class _JadwalPageState extends State<JadwalPage> {
       ),
     );
   }
-
-  // ...existing code...
 }

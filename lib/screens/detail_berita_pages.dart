@@ -3,8 +3,13 @@ import 'package:intl/intl.dart';
 
 class DetailBeritaPages extends StatelessWidget {
   final Map<String, dynamic> berita;
+  final bool isStarred; // status star dikirim dari screen Berita
 
-  const DetailBeritaPages({super.key, required this.berita});
+  const DetailBeritaPages({
+    super.key,
+    required this.berita,
+    this.isStarred = false,
+  });
 
   String _formatTanggal(String? raw) {
     if (raw == null || raw.isEmpty) return "-";
@@ -58,7 +63,7 @@ class DetailBeritaPages extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // Baris tanggal + icon bintang
+                    // Baris tanggal + icon bintang (READ ONLY)
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
@@ -72,7 +77,9 @@ class DetailBeritaPages extends StatelessWidget {
                         Container(
                           padding: const EdgeInsets.all(10),
                           decoration: BoxDecoration(
-                            color: Colors.amber.shade400,
+                            color: isStarred
+                                ? Colors.amber.shade400
+                                : Colors.white,
                             shape: BoxShape.circle,
                             boxShadow: [
                               BoxShadow(
@@ -82,9 +89,9 @@ class DetailBeritaPages extends StatelessWidget {
                               ),
                             ],
                           ),
-                          child: const Icon(
+                          child: Icon(
                             Icons.star,
-                            color: Colors.white,
+                            color: isStarred ? Colors.white : Colors.amber,
                             size: 18,
                           ),
                         ),
@@ -94,7 +101,7 @@ class DetailBeritaPages extends StatelessWidget {
                     const SizedBox(height: 18),
 
                     Text(
-                      berita["judul"],
+                      berita["judul"]?.toString() ?? "-",
                       style: const TextStyle(
                         fontSize: 22,
                         fontWeight: FontWeight.bold,
@@ -104,8 +111,11 @@ class DetailBeritaPages extends StatelessWidget {
                     const SizedBox(height: 10),
 
                     Text(
-                      berita["isi"],
-                      style: const TextStyle(fontSize: 16, height: 1.5),
+                      berita["isi"]?.toString() ?? "-",
+                      style: const TextStyle(
+                        fontSize: 16,
+                        height: 1.5,
+                      ),
                     ),
                   ],
                 ),
