@@ -289,16 +289,18 @@ class _JadwalPageState extends State<JadwalPage> {
 
       final List<dynamic> jadwals =
           response.data['jadwals'] ?? response.data['data'] ?? [];
-          
+
       final Set<int> existingJadwalIds = _filterJadwalIds;
       final Set<String> existingNames = _filterNames;
 
-      final lastDayOfMonth = DateTime(monthFocus.year, monthFocus.month + 1, 0);
+      final lastDayOfMonth =
+          DateTime(monthFocus.year, monthFocus.month + 1, 0);
 
       Map<DateTime, List<Event>> newEvents = {};
 
       for (var j in jadwals) {
-        final namaHariRaw = j['nama_hari'] ?? j['hari'] ?? j['hari_nama'] ?? '';
+        final namaHariRaw =
+            j['nama_hari'] ?? j['hari'] ?? j['hari_nama'] ?? '';
         final weekday = _weekdayFrom(namaHariRaw);
         if (weekday == null) continue; // unknown day
 
@@ -371,257 +373,275 @@ class _JadwalPageState extends State<JadwalPage> {
 
     return Scaffold(
       backgroundColor: Colors.white,
-      appBar: AppBar(
-        leading: const BackButton(color: Colors.black),
-        elevation: 0,
-        backgroundColor: Colors.white,
-        centerTitle: false,
-        title: const Text('', style: TextStyle(color: Colors.black)),
-        actions: [
-          Padding(
-            padding: const EdgeInsets.only(right: 16.0),
-            child: Image.asset('assets/images/swu.png', width: 36, height: 36),
-          ),
-        ],
-      ),
       body: SafeArea(
         child: Column(
           children: [
-            // Calendar area
+            // ===== CUSTOM HEADER (GANTI APPBAR) =====
             Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16.0),
-              child: Column(
+              padding:
+                  const EdgeInsets.symmetric(horizontal: 16.0, vertical: 10),
+              child: Row(
                 children: [
-                  if (_daftarKrs.isNotEmpty)
-                    Padding(
-                      padding: const EdgeInsets.only(bottom: 6.0),
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 12,
-                          vertical: 6,
-                        ),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFF7BA7E2), 
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: DropdownButton<int>(
-                          isExpanded: true,
-                          value: _selectedKrsId,
-                          dropdownColor: const Color(0xFF7BA7E2),
-                          underline: const SizedBox.shrink(),
-                          iconEnabledColor: Colors.white,
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontWeight: FontWeight.w600,
-                          ),
-                          items: _daftarKrs.map((krs) {
-                            final id = krs['id'] as int?;
-                            final semester =
-                                krs['semester']?.toString() ?? '-';
-                            final tahun =
-                                (krs['tahun_ajaran'] ?? krs['tahun'])
-                                        ?.toString() ??
-                                    '-';
-                            return DropdownMenuItem<int>(
-                              value: id,
-                              child: Text(
-                                'Semester $semester • $tahun',
-                                style: const TextStyle(color: Colors.white),
-                              ),
-                            );
-                          }).toList(),
-                          onChanged: (val) async {
-                            if (val == null) return;
-
-                            setState(() {
-                              _selectedKrsId = val;
-                              _loading = true;
-                            });
-
-                            final prefs =
-                                await SharedPreferences.getInstance();
-                            await prefs.setInt(_selectedKrsPrefKey, val);
-
-                            await _loadKrsDetailToFilter(val);
-                            await _fetchAndBuildEventsForMonth(_focusedDay);
-                          },
-                        ),
-                      ),
-                    ),
-
-
-                  const SizedBox(height: 4),
-                  Text(
-                    monthTitle,
-                    style: const TextStyle(
-                      fontWeight: FontWeight.bold,
-                      fontSize: 16,
+                  GestureDetector(
+                    onTap: () => Navigator.pop(context),
+                    child: const Icon(
+                      Icons.arrow_back_ios_new,
+                      color: Colors.black,
+                      size: 20,
                     ),
                   ),
-                  const SizedBox(height: 12),
-                  TableCalendar<Event>(
-                    firstDay: DateTime.utc(2000, 1, 1),
-                    lastDay: DateTime.utc(2100, 12, 31),
-                    focusedDay: _focusedDay,
-                    eventLoader: _getEventsForDay,
-                    selectedDayPredicate: (day) =>
-                        isSameDay(_selectedDay, day),
-                    startingDayOfWeek: StartingDayOfWeek.sunday,
-                    locale: 'id_ID',
-                    headerVisible: false, // hide default header
-                    calendarStyle: CalendarStyle(
-                      outsideDaysVisible: true,
-                      markersMaxCount: 1,
-                      todayDecoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        color:
-                            const Color.fromARGB(255, 131, 174, 255),
-                        border: Border.all(
-                          color:
-                              const Color.fromARGB(255, 156, 196, 255),
-                        ),
-                      ),
-                      selectedDecoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        color: Colors.transparent,
-                        border: Border.all(
-                          color:
-                              const Color.fromARGB(255, 131, 174, 255),
-                        ),
-                      ),
-                      todayTextStyle: const TextStyle(
-                        color: Color.fromARGB(255, 255, 255, 255),
-                        fontWeight: FontWeight.bold,
-                      ),
-                      selectedTextStyle: const TextStyle(
-                        color: Color.fromARGB(255, 0, 0, 0),
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    daysOfWeekStyle: const DaysOfWeekStyle(
-                      weekdayStyle: TextStyle(fontWeight: FontWeight.w500),
-                      weekendStyle: TextStyle(color: Colors.red),
-                    ),
-                    onDaySelected: (selectedDay, focusedDay) {
-                      setState(() {
-                        _selectedDay = selectedDay;
-                        _focusedDay = focusedDay;
-                      });
-                    },
-                    onPageChanged: _onPageChanged,
-                    calendarBuilders: CalendarBuilders(
-                      markerBuilder: (context, date, events) {
-                        if (events.isNotEmpty) {
-                          return Align(
-                            alignment: Alignment.bottomRight,
-                            child: Container(
-                              width: 6,
-                              height: 6,
-                              margin: const EdgeInsets.only(
-                                right: 6,
-                                bottom: 6,
-                              ),
-                              decoration: const BoxDecoration(
-                                color: Colors.blue,
-                                shape: BoxShape.circle,
-                              ),
-                            ),
-                          );
-                        }
-                        return const SizedBox.shrink();
-                      },
-                      dowBuilder: (context, day) {
-
-                        const Map<int, String> names = {
-                          DateTime.monday: 'Sen',
-                          DateTime.tuesday: 'Sel',
-                          DateTime.wednesday: 'Rab',
-                          DateTime.thursday: 'Kam',
-                          DateTime.friday: 'Jum',
-                          DateTime.saturday: 'Sab',
-                          DateTime.sunday: 'Mg',
-                        };
-                        final label = names[day.weekday] ?? '';
-                        return Center(
-                          child: Text(
-                            label,
-                            style: const TextStyle(
-                              fontSize: 12,
-                              color: Color.fromARGB(255, 5, 1, 1),
-                            ),
-                          ),
-                        );
-                      },
-                    ),
+                  const Spacer(),
+                  Image.asset(
+                    'assets/images/swu.png',
+                    width: 36,
+                    height: 36,
                   ),
-
-                  const SizedBox(height: 8),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      IconButton(
-                        onPressed: () {
-                          final prev = DateTime(
-                            _focusedDay.year,
-                            _focusedDay.month - 1,
-                            1,
-                          );
-                          setState(() {
-                            _focusedDay = prev;
-                          });
-                          _onPageChanged(_focusedDay);
-                        },
-                        icon: Container(
-                          decoration: BoxDecoration(
-                            color: Colors.grey.shade200,
-                            shape: BoxShape.circle,
-                          ),
-                          padding: const EdgeInsets.all(8),
-                          child: const Icon(
-                            Icons.chevron_left,
-                            color: Colors.black87,
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      IconButton(
-                        onPressed: () {
-                          final next = DateTime(
-                            _focusedDay.year,
-                            _focusedDay.month + 1,
-                            1,
-                          );
-                          setState(() {
-                            _focusedDay = next;
-                          });
-                          _onPageChanged(_focusedDay);
-                        },
-                        icon: Container(
-                          decoration: BoxDecoration(
-                            color: Colors.grey.shade200,
-                            shape: BoxShape.circle,
-                          ),
-                          padding: const EdgeInsets.all(8),
-                          child: const Icon(
-                            Icons.chevron_right,
-                            color: Colors.black87,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 8),
-                  Divider(color: Colors.grey.shade300, thickness: 1),
                 ],
               ),
             ),
 
+            // ===== MAIN CONTENT =====
             Expanded(
-              child: _loading
-                  ? const Center(child: CircularProgressIndicator())
-                  : _error.isNotEmpty
-                      ? Center(child: Text(_error))
-                      : _buildEventList(),
+              child: Column(
+                children: [
+                  // Calendar area
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                    child: Column(
+                      children: [
+                        if (_daftarKrs.isNotEmpty)
+                          Padding(
+                            padding: const EdgeInsets.only(bottom: 6.0),
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 12,
+                                vertical: 6,
+                              ),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFF7BA7E2),
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: DropdownButton<int>(
+                                isExpanded: true,
+                                value: _selectedKrsId,
+                                dropdownColor: const Color(0xFF7BA7E2),
+                                underline: const SizedBox.shrink(),
+                                iconEnabledColor: Colors.white,
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                                items: _daftarKrs.map((krs) {
+                                  final id = krs['id'] as int?;
+                                  final semester =
+                                      krs['semester']?.toString() ?? '-';
+                                  final tahun =
+                                      (krs['tahun_ajaran'] ?? krs['tahun'])
+                                              ?.toString() ??
+                                          '-';
+                                  return DropdownMenuItem<int>(
+                                    value: id,
+                                    child: Text(
+                                      'Semester $semester • $tahun',
+                                      style:
+                                          const TextStyle(color: Colors.white),
+                                    ),
+                                  );
+                                }).toList(),
+                                onChanged: (val) async {
+                                  if (val == null) return;
+
+                                  setState(() {
+                                    _selectedKrsId = val;
+                                    _loading = true;
+                                  });
+
+                                  final prefs =
+                                      await SharedPreferences.getInstance();
+                                  await prefs.setInt(_selectedKrsPrefKey, val);
+
+                                  await _loadKrsDetailToFilter(val);
+                                  await _fetchAndBuildEventsForMonth(
+                                      _focusedDay);
+                                },
+                              ),
+                            ),
+                          ),
+                        const SizedBox(height: 4),
+                        Text(
+                          monthTitle,
+                          style: const TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 16,
+                          ),
+                        ),
+                        const SizedBox(height: 12),
+                        TableCalendar<Event>(
+                          firstDay: DateTime.utc(2000, 1, 1),
+                          lastDay: DateTime.utc(2100, 12, 31),
+                          focusedDay: _focusedDay,
+                          eventLoader: _getEventsForDay,
+                          selectedDayPredicate: (day) =>
+                              isSameDay(_selectedDay, day),
+                          startingDayOfWeek: StartingDayOfWeek.sunday,
+                          locale: 'id_ID',
+                          headerVisible: false, // hide default header
+                          calendarStyle: CalendarStyle(
+                            outsideDaysVisible: true,
+                            markersMaxCount: 1,
+                            todayDecoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              color:
+                                  const Color.fromARGB(255, 131, 174, 255),
+                              border: Border.all(
+                                color: const Color.fromARGB(
+                                    255, 156, 196, 255),
+                              ),
+                            ),
+                            selectedDecoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              color: Colors.transparent,
+                              border: Border.all(
+                                color: const Color.fromARGB(
+                                    255, 131, 174, 255),
+                              ),
+                            ),
+                            todayTextStyle: const TextStyle(
+                              color: Color.fromARGB(255, 255, 255, 255),
+                              fontWeight: FontWeight.bold,
+                            ),
+                            selectedTextStyle: const TextStyle(
+                              color: Color.fromARGB(255, 0, 0, 0),
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          daysOfWeekStyle: const DaysOfWeekStyle(
+                            weekdayStyle:
+                                TextStyle(fontWeight: FontWeight.w500),
+                            weekendStyle: TextStyle(color: Colors.red),
+                          ),
+                          onDaySelected: (selectedDay, focusedDay) {
+                            setState(() {
+                              _selectedDay = selectedDay;
+                              _focusedDay = focusedDay;
+                            });
+                          },
+                          onPageChanged: _onPageChanged,
+                          calendarBuilders: CalendarBuilders(
+                            markerBuilder: (context, date, events) {
+                              if (events.isNotEmpty) {
+                                return Align(
+                                  alignment: Alignment.bottomRight,
+                                  child: Container(
+                                    width: 6,
+                                    height: 6,
+                                    margin: const EdgeInsets.only(
+                                      right: 6,
+                                      bottom: 6,
+                                    ),
+                                    decoration: const BoxDecoration(
+                                      color: Colors.blue,
+                                      shape: BoxShape.circle,
+                                    ),
+                                  ),
+                                );
+                              }
+                              return const SizedBox.shrink();
+                            },
+                            dowBuilder: (context, day) {
+                              const Map<int, String> names = {
+                                DateTime.monday: 'Sen',
+                                DateTime.tuesday: 'Sel',
+                                DateTime.wednesday: 'Rab',
+                                DateTime.thursday: 'Kam',
+                                DateTime.friday: 'Jum',
+                                DateTime.saturday: 'Sab',
+                                DateTime.sunday: 'Mg',
+                              };
+                              final label = names[day.weekday] ?? '';
+                              return Center(
+                                child: Text(
+                                  label,
+                                  style: const TextStyle(
+                                    fontSize: 12,
+                                    color: Color.fromARGB(255, 5, 1, 1),
+                                  ),
+                                ),
+                              );
+                            },
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            IconButton(
+                              onPressed: () {
+                                final prev = DateTime(
+                                  _focusedDay.year,
+                                  _focusedDay.month - 1,
+                                  1,
+                                );
+                                setState(() {
+                                  _focusedDay = prev;
+                                });
+                                _onPageChanged(_focusedDay);
+                              },
+                              icon: Container(
+                                decoration: BoxDecoration(
+                                  color: Colors.grey.shade200,
+                                  shape: BoxShape.circle,
+                                ),
+                                padding: const EdgeInsets.all(8),
+                                child: const Icon(
+                                  Icons.chevron_left,
+                                  color: Colors.black87,
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 12),
+                            IconButton(
+                              onPressed: () {
+                                final next = DateTime(
+                                  _focusedDay.year,
+                                  _focusedDay.month + 1,
+                                  1,
+                                );
+                                setState(() {
+                                  _focusedDay = next;
+                                });
+                                _onPageChanged(_focusedDay);
+                              },
+                              icon: Container(
+                                decoration: BoxDecoration(
+                                  color: Colors.grey.shade200,
+                                  shape: BoxShape.circle,
+                                ),
+                                padding: const EdgeInsets.all(8),
+                                child: const Icon(
+                                  Icons.chevron_right,
+                                  color: Colors.black87,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 8),
+                        Divider(color: Colors.grey.shade300, thickness: 1),
+                      ],
+                    ),
+                  ),
+
+                  // ===== LIST EVENT =====
+                  Expanded(
+                    child: _loading
+                        ? const Center(child: CircularProgressIndicator())
+                        : _error.isNotEmpty
+                            ? Center(child: Text(_error))
+                            : _buildEventList(),
+                  ),
+                ],
+              ),
             ),
           ],
         ),
@@ -652,7 +672,7 @@ class _JadwalPageState extends State<JadwalPage> {
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: const Color(0xFF8FB1F3), 
+        color: const Color(0xFF8FB1F3),
         borderRadius: BorderRadius.circular(12),
       ),
       child: Column(
@@ -686,24 +706,22 @@ class _JadwalPageState extends State<JadwalPage> {
               const Text(
                 'Luring',
                 style: TextStyle(color: Colors.white70, fontSize: 12),
-              ), 
+              ),
             ],
           ),
           const SizedBox(height: 10),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-
               Expanded(
                 child: Row(
                   children: [
-
                     ElevatedButton.icon(
                       onPressed: () {
                         if (e.linkZoom.isNotEmpty) {
-
+                          // TODO: open link zoom
                         } else {
-
+                          // TODO: show snackbar "Link Zoom belum tersedia"
                         }
                       },
                       icon: Icon(Icons.videocam,
@@ -725,7 +743,6 @@ class _JadwalPageState extends State<JadwalPage> {
                       ),
                     ),
                     const SizedBox(width: 8),
-
                     ElevatedButton.icon(
                       onPressed: () {
                         Navigator.push(
@@ -744,8 +761,7 @@ class _JadwalPageState extends State<JadwalPage> {
                       ),
                       label: Text(
                         'Presensi',
-                        style:
-                            TextStyle(color: Colors.green.shade700),
+                        style: TextStyle(color: Colors.green.shade700),
                       ),
                       style: ElevatedButton.styleFrom(
                         backgroundColor: Colors.white,
@@ -762,18 +778,18 @@ class _JadwalPageState extends State<JadwalPage> {
                   ],
                 ),
               ),
-
-              // right: materi.pdf button (white bg, red text, pdf icon left)
               ElevatedButton.icon(
                 onPressed: () {
-                  // download / open materi
+                  // TODO: open/download materi
                 },
                 icon: Icon(Icons.picture_as_pdf,
                     color: Colors.red.shade700),
                 label: Text(
                   e.materi.isNotEmpty ? e.materi : 'materi.pdf',
                   style: TextStyle(
-                      color: Colors.red.shade700, fontSize: 12),
+                    color: Colors.red.shade700,
+                    fontSize: 12,
+                  ),
                 ),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.white,

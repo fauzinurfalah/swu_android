@@ -170,7 +170,7 @@ class _TranskipPageState extends State<TranskipPage> {
                           radius: 22,
                           backgroundImage: hasFoto
                               ? NetworkImage(user!["foto"])
-                              : const AssetImage("assets/images/profile.png")
+                              : const AssetImage("assets/images/default_user.png")
                                   as ImageProvider,
                         ),
                         const SizedBox(width: 10),
