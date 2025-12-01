@@ -34,6 +34,8 @@ class _AbsenSubmitScreenState extends State<AbsenSubmitScreen> {
 
   Uint8List? _photoBytes;
   Position? _position;
+  DateTime? _locationTime; // waktu saat lokasi diambil
+
   bool _isSubmitting = false;
   bool _loading = true;
   bool _isCameraReady = false;
@@ -82,7 +84,7 @@ class _AbsenSubmitScreenState extends State<AbsenSubmitScreen> {
   @override
   void dispose() {
     if (kIsWeb) {
-      cam.dispose(); // <- sekarang bener-bener matiin stream kamera
+      cam.dispose(); // matikan stream kamera saat keluar screen
     }
     super.dispose();
   }
@@ -115,13 +117,15 @@ class _AbsenSubmitScreenState extends State<AbsenSubmitScreen> {
       final data = await cam.capture();
       setState(() => _photoBytes = data);
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Foto berhasil diambil'),
-          backgroundColor: Colors.green,
-          duration: Duration(seconds: 2),
-        ),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Foto berhasil diambil'),
+            backgroundColor: Colors.green,
+            duration: Duration(seconds: 2),
+          ),
+        );
+      }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -134,18 +138,21 @@ class _AbsenSubmitScreenState extends State<AbsenSubmitScreen> {
     }
   }
 
+  // Foto ulang = ambil foto baru lagi dari kamera
   Future<void> _retakePicture() async {
-    setState(() => _photoBytes = null);
+    await _takePicture();
   }
 
+  /// 🔹 Versi _getLocation disederhanakan seperti contoh AbsenSubmitPage
   Future<void> _getLocation() async {
     try {
+      // Cek apakah layanan lokasi aktif
       bool enabled = await Geolocator.isLocationServiceEnabled();
       if (!enabled) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
-              content: Text('Layanan lokasi tidak aktif'),
+              content: Text("Lokasi tidak aktif"),
               backgroundColor: Colors.orange,
             ),
           );
@@ -153,6 +160,7 @@ class _AbsenSubmitScreenState extends State<AbsenSubmitScreen> {
         return;
       }
 
+      // Cek & minta izin
       LocationPermission perm = await Geolocator.checkPermission();
       if (perm == LocationPermission.denied) {
         perm = await Geolocator.requestPermission();
@@ -161,7 +169,7 @@ class _AbsenSubmitScreenState extends State<AbsenSubmitScreen> {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
-              content: Text('Izin lokasi ditolak'),
+              content: Text("Izin lokasi ditolak, aktifkan di pengaturan"),
               backgroundColor: Colors.red,
             ),
           );
@@ -169,23 +177,28 @@ class _AbsenSubmitScreenState extends State<AbsenSubmitScreen> {
         return;
       }
 
-      final pos = await Geolocator.getCurrentPosition(
-        desiredAccuracy: LocationAccuracy.high,
-      );
-      setState(() => _position = pos);
+      // 🔥 Versi simpel seperti di kode contoh
+      final pos = await Geolocator.getCurrentPosition();
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Lokasi berhasil diambil'),
-          backgroundColor: Colors.green,
-          duration: Duration(seconds: 2),
-        ),
-      );
+      setState(() {
+        _position = pos;
+        _locationTime = DateTime.now(); // simpan waktu saat lokasi diambil
+      });
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text("Lokasi berhasil diambil"),
+            backgroundColor: Colors.green,
+            duration: Duration(seconds: 2),
+          ),
+        );
+      }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Gagal mengambil lokasi: $e'),
+            content: Text("Gagal mengambil lokasi: $e"),
             backgroundColor: Colors.red,
           ),
         );
@@ -193,7 +206,7 @@ class _AbsenSubmitScreenState extends State<AbsenSubmitScreen> {
     }
   }
 
-  // ================== _submit SUDAH DIPERBAIKI DI SINI ==================
+  // ================== _submit ==================
   Future<void> _submit() async {
     if (_existing != null) {
       Navigator.pop(context, true);
@@ -247,14 +260,12 @@ class _AbsenSubmitScreenState extends State<AbsenSubmitScreen> {
         data: form,
       );
 
-      // Debug print supaya tahu response backend
       print("🔵 STATUS CODE: ${res.statusCode}");
       print("🔵 DATA: ${res.data}");
 
       final statusCode = res.statusCode ?? 0;
       final data = res.data;
 
-      // LOGIKA SUKSES DIPERBAIKI
       final isSuccess =
           (statusCode >= 200 && statusCode < 300) ||
           data?['status'] == true ||
@@ -282,7 +293,6 @@ class _AbsenSubmitScreenState extends State<AbsenSubmitScreen> {
         return;
       }
 
-      // Bila backend mengembalikan status selain berhasil → anggap gagal
       final msg = data?['message'] ?? 'Gagal submit';
       throw Exception(msg);
     } catch (e) {
@@ -346,7 +356,7 @@ class _AbsenSubmitScreenState extends State<AbsenSubmitScreen> {
               ),
               const SizedBox(height: 16),
 
-              // Camera / Photo Preview
+              // Live Camera (selalu tampil di web)
               Container(
                 width: double.infinity,
                 height: 220,
@@ -355,37 +365,64 @@ class _AbsenSubmitScreenState extends State<AbsenSubmitScreen> {
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: ClipRRect(
-                borderRadius: BorderRadius.circular(12),
-                child: _photoBytes != null
-                    ? Image.memory(_photoBytes!, fit: BoxFit.cover)
-                    : (kIsWeb
-                        ? const HtmlElementView(viewType: WebCamera.viewType)
-                        : Center(
-                            child: Column(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: const [
-                                Icon(
-                                  Icons.camera_alt,
-                                  size: 64,
-                                  color: Colors.grey,
-                                ),
-                                SizedBox(height: 8),
-                                Text('Kamera hanya tersedia di versi web'),
-                              ],
-                            ),
-                          )),
-              ),
-
+                  borderRadius: BorderRadius.circular(12),
+                  child: kIsWeb
+                      ? const HtmlElementView(
+                          viewType: WebCamera.viewType,
+                        )
+                      : Center(
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: const [
+                              Icon(
+                                Icons.camera_alt,
+                                size: 64,
+                                color: Colors.grey,
+                              ),
+                              SizedBox(height: 8),
+                              Text('Kamera hanya tersedia di versi web'),
+                            ],
+                          ),
+                        ),
+                ),
               ),
 
               const SizedBox(height: 12),
 
-              // Ambil Foto Button
+              // Preview foto yang sudah diambil (kalau ada)
+              if (_photoBytes != null) ...[
+                const Text(
+                  'Foto Terakhir:',
+                  style: TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const SizedBox(height: 6),
+                Container(
+                  width: double.infinity,
+                  height: 150,
+                  decoration: BoxDecoration(
+                    color: Colors.grey.shade200,
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(12),
+                    child: Image.memory(
+                      _photoBytes!,
+                      fit: BoxFit.cover,
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 12),
+              ],
+
+              // Ambil Foto / Foto Ulang Button
               Center(
                 child: OutlinedButton(
-                  onPressed: _photoBytes == null
-                      ? (_isCameraReady || !kIsWeb ? _takePicture : null)
-                      : _retakePicture,
+                  onPressed: (_isCameraReady || !kIsWeb)
+                      ? (_photoBytes == null ? _takePicture : _retakePicture)
+                      : null,
                   style: OutlinedButton.styleFrom(
                     padding: const EdgeInsets.symmetric(
                       horizontal: 32,
@@ -395,8 +432,9 @@ class _AbsenSubmitScreenState extends State<AbsenSubmitScreen> {
                       borderRadius: BorderRadius.circular(25),
                     ),
                   ),
-                  child:
-                      Text(_photoBytes == null ? 'Ambil Foto' : 'Foto Ulang'),
+                  child: Text(
+                    _photoBytes == null ? 'Ambil Foto' : 'Foto Ulang',
+                  ),
                 ),
               ),
             ],
@@ -437,7 +475,9 @@ class _AbsenSubmitScreenState extends State<AbsenSubmitScreen> {
               ),
               const SizedBox(height: 4),
               Text(
-                'Waktu : ${DateFormat("HH.mm").format(DateTime.now())}',
+                'Waktu : ${_locationTime != null
+                    ? DateFormat("HH.mm").format(_locationTime!)
+                    : '-'}',
                 style: const TextStyle(fontSize: 13),
               ),
               const SizedBox(height: 12),
