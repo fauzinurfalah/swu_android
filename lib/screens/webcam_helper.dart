@@ -3,6 +3,7 @@ import 'dart:html' as html;
 import 'dart:ui_web' as ui_web;
 
 class WebCamera {
+
   WebCamera._internal() {
     _registerViewFactoryOnce();
   }
@@ -19,9 +20,11 @@ class WebCamera {
   void _registerViewFactoryOnce() {
     if (_viewRegistered) return;
 
+
     ui_web.platformViewRegistry.registerViewFactory(
       viewType,
       (int viewId) {
+
         _video ??= html.VideoElement()
           ..autoplay = true
           ..style.width = '100%'
@@ -36,6 +39,7 @@ class WebCamera {
   }
 
   Future<void> initialize() async {
+
     _canvas ??= html.CanvasElement();
 
     _video ??= html.VideoElement()
@@ -63,7 +67,7 @@ class WebCamera {
     } catch (e) {
       throw Exception('Gagal akses kamera: $e');
     }
-  }View
+  }
 
   Future<Uint8List> capture() async {
     if (_video == null || _canvas == null) {
