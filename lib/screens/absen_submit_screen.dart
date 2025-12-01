@@ -47,14 +47,14 @@ class _AbsenSubmitScreenState extends State<AbsenSubmitScreen> {
 
   Future<void> _init() async {
     await _fetchExisting();
-    
+
     if (_existing == null && kIsWeb) {
       // Initialize camera only on web and if not submitted
       WidgetsBinding.instance.addPostFrameCallback((_) {
         _initializeCameraAfterRender();
       });
     }
-    
+
     if (mounted) setState(() => _loading = false);
   }
 
@@ -82,7 +82,7 @@ class _AbsenSubmitScreenState extends State<AbsenSubmitScreen> {
   @override
   void dispose() {
     if (kIsWeb) {
-      cam.dispose();
+      cam.dispose(); // <- sekarang bener-bener matiin stream kamera
     }
     super.dispose();
   }
@@ -114,7 +114,7 @@ class _AbsenSubmitScreenState extends State<AbsenSubmitScreen> {
     try {
       final data = await cam.capture();
       setState(() => _photoBytes = data);
-      
+
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Foto berhasil diambil'),
@@ -142,27 +142,30 @@ class _AbsenSubmitScreenState extends State<AbsenSubmitScreen> {
     try {
       bool enabled = await Geolocator.isLocationServiceEnabled();
       if (!enabled) {
-        if (mounted)
+        if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
               content: Text('Layanan lokasi tidak aktif'),
               backgroundColor: Colors.orange,
             ),
           );
+        }
         return;
       }
 
       LocationPermission perm = await Geolocator.checkPermission();
-      if (perm == LocationPermission.denied)
+      if (perm == LocationPermission.denied) {
         perm = await Geolocator.requestPermission();
+      }
       if (perm == LocationPermission.deniedForever) {
-        if (mounted)
+        if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
               content: Text('Izin lokasi ditolak'),
               backgroundColor: Colors.red,
             ),
           );
+        }
         return;
       }
 
@@ -170,7 +173,7 @@ class _AbsenSubmitScreenState extends State<AbsenSubmitScreen> {
         desiredAccuracy: LocationAccuracy.high,
       );
       setState(() => _position = pos);
-      
+
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Lokasi berhasil diambil'),
@@ -179,16 +182,18 @@ class _AbsenSubmitScreenState extends State<AbsenSubmitScreen> {
         ),
       );
     } catch (e) {
-      if (mounted)
+      if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Gagal mengambil lokasi: $e'),
             backgroundColor: Colors.red,
           ),
         );
+      }
     }
   }
 
+  // ================== _submit SUDAH DIPERBAIKI DI SINI ==================
   Future<void> _submit() async {
     if (_existing != null) {
       Navigator.pop(context, true);
@@ -242,40 +247,58 @@ class _AbsenSubmitScreenState extends State<AbsenSubmitScreen> {
         data: form,
       );
 
-      if (res.data['status'] == 200 || res.statusCode == 200) {
-        // Show success message
+      // Debug print supaya tahu response backend
+      print("🔵 STATUS CODE: ${res.statusCode}");
+      print("🔵 DATA: ${res.data}");
+
+      final statusCode = res.statusCode ?? 0;
+      final data = res.data;
+
+      // LOGIKA SUKSES DIPERBAIKI
+      final isSuccess =
+          (statusCode >= 200 && statusCode < 300) ||
+          data?['status'] == true ||
+          data?['status'] == 1 ||
+          data?['status'] == 'success' ||
+          data?['status'] == 200;
+
+      if (isSuccess) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('✅ Absensi berhasil disubmit'),
+            SnackBar(
+              content:
+                  Text(data?['message'] ?? '✅ Absensi berhasil disubmit'),
               backgroundColor: Colors.green,
-              duration: Duration(seconds: 2),
+              duration: const Duration(seconds: 2),
             ),
           );
         }
-        
-        // Wait a bit for user to see the snackbar
+
         await Future.delayed(const Duration(milliseconds: 500));
-        
-        // Return true to indicate success
+
         if (mounted) {
           Navigator.pop(context, true);
         }
-      } else {
-        throw Exception(res.data['message'] ?? 'Gagal submit');
+        return;
       }
+
+      // Bila backend mengembalikan status selain berhasil → anggap gagal
+      final msg = data?['message'] ?? 'Gagal submit';
+      throw Exception(msg);
     } catch (e) {
-      if (mounted)
+      if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('❌ Gagal submit absen: ${e.toString()}'),
             backgroundColor: Colors.red,
           ),
         );
+      }
     } finally {
       if (mounted) setState(() => _isSubmitting = false);
     }
   }
+  // =============================================================
 
   Widget _buildNotSubmittedView() {
     return Column(
@@ -321,9 +344,8 @@ class _AbsenSubmitScreenState extends State<AbsenSubmitScreen> {
                   color: Colors.black87,
                 ),
               ),
-              
               const SizedBox(height: 16),
-              
+
               // Camera / Photo Preview
               Container(
                 width: double.infinity,
@@ -333,33 +355,31 @@ class _AbsenSubmitScreenState extends State<AbsenSubmitScreen> {
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: ClipRRect(
-                  borderRadius: BorderRadius.circular(12),
-                  child: _photoBytes != null
-                      ? Image.memory(_photoBytes!, fit: BoxFit.cover)
-                      : (kIsWeb && _isCameraReady
-                          ? const HtmlElementView(viewType: 'webcam-view')
-                          : Center(
-                              child: Column(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  if (!_isCameraReady && kIsWeb) ...[
-                                    const CircularProgressIndicator(),
-                                    const SizedBox(height: 12),
-                                    const Text('Memuat kamera...'),
-                                  ] else
-                                    const Icon(
-                                      Icons.camera_alt,
-                                      size: 64,
-                                      color: Colors.grey,
-                                    ),
-                                ],
-                              ),
-                            )),
-                ),
+                borderRadius: BorderRadius.circular(12),
+                child: _photoBytes != null
+                    ? Image.memory(_photoBytes!, fit: BoxFit.cover)
+                    : (kIsWeb
+                        ? const HtmlElementView(viewType: WebCamera.viewType)
+                        : Center(
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: const [
+                                Icon(
+                                  Icons.camera_alt,
+                                  size: 64,
+                                  color: Colors.grey,
+                                ),
+                                SizedBox(height: 8),
+                                Text('Kamera hanya tersedia di versi web'),
+                              ],
+                            ),
+                          )),
               ),
-              
+
+              ),
+
               const SizedBox(height: 12),
-              
+
               // Ambil Foto Button
               Center(
                 child: OutlinedButton(
@@ -375,7 +395,8 @@ class _AbsenSubmitScreenState extends State<AbsenSubmitScreen> {
                       borderRadius: BorderRadius.circular(25),
                     ),
                   ),
-                  child: Text(_photoBytes == null ? 'Ambil Foto' : 'Foto Ulang'),
+                  child:
+                      Text(_photoBytes == null ? 'Ambil Foto' : 'Foto Ulang'),
                 ),
               ),
             ],
@@ -438,7 +459,7 @@ class _AbsenSubmitScreenState extends State<AbsenSubmitScreen> {
         ),
 
         const SizedBox(height: 20),
-        
+
         // Hadir Button
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -482,7 +503,10 @@ class _AbsenSubmitScreenState extends State<AbsenSubmitScreen> {
     final lat = double.tryParse(
         (_existing?['latitude'] ?? _existing?['lat'] ?? '0').toString());
     final lon = double.tryParse(
-        (_existing?['longitude'] ?? _existing?['lng'] ?? _existing?['long'] ?? '0')
+        (_existing?['longitude'] ??
+                _existing?['lng'] ??
+                _existing?['long'] ??
+                '0')
             .toString());
     final waktu =
         _existing?['created_at'] ?? _existing?['waktu'] ?? _existing?['time'];
@@ -530,9 +554,8 @@ class _AbsenSubmitScreenState extends State<AbsenSubmitScreen> {
                   color: Colors.black87,
                 ),
               ),
-              
               const SizedBox(height: 16),
-              
+
               // Photo
               Container(
                 width: double.infinity,
@@ -555,9 +578,8 @@ class _AbsenSubmitScreenState extends State<AbsenSubmitScreen> {
                         child: Icon(Icons.image, size: 48, color: Colors.grey),
                       ),
               ),
-              
               const SizedBox(height: 16),
-              
+
               // Map
               Container(
                 width: double.infinity,
@@ -626,7 +648,7 @@ class _AbsenSubmitScreenState extends State<AbsenSubmitScreen> {
         ),
 
         const SizedBox(height: 16),
-        
+
         // Anda Hadir Button
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -662,9 +684,9 @@ class _AbsenSubmitScreenState extends State<AbsenSubmitScreen> {
   @override
   Widget build(BuildContext context) {
     // Determine background color based on status
-    final bgColor = _existing != null 
+    final bgColor = _existing != null
         ? const Color(0xFF4CAF50) // Green
-        : const Color(0xFF95A5A6);  // Gray
+        : const Color(0xFF95A5A6); // Gray
 
     return Scaffold(
       backgroundColor: bgColor,
