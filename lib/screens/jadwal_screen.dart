@@ -51,6 +51,7 @@ class _JadwalPageState extends State<JadwalPage> {
   int? _selectedKrsId;
   Set<int> _filterJadwalIds = {};
   Set<String> _filterNames = {};
+  Map<int, int> _scheduleIdToKrsDetailId = {};
 
   @override
   void initState() {
@@ -150,23 +151,37 @@ class _JadwalPageState extends State<JadwalPage> {
       final List<dynamic> daftarMatkul = resp.data['data'] ?? [];
       final ids = <int>{};
       final names = <String>{};
+      final scheduleMap = <int, int>{};
+
       for (final m in daftarMatkul) {
+        // Extract KRS Detail ID (unique per student per course)
+        final krsDetailId = m['id'] is int ? m['id'] : int.tryParse(m['id'].toString());
+
+        // Extract Schedule ID (shared)
+        int? scheduleId;
         try {
           final candidates = [
             'id_jadwal',
             'jadwal_id',
             'id_jadwal_krs',
-            'id_jadwal',
-            'id',
           ];
           for (final k in candidates) {
             if (m[k] != null) {
               final jid = m[k] is int ? m[k] : int.tryParse(m[k].toString());
-              if (jid != null) ids.add(jid);
-              break;
+              if (jid != null) {
+                scheduleId = jid;
+                ids.add(jid);
+                break;
+              }
             }
           }
         } catch (_) {}
+
+        // Map Schedule ID -> KRS Detail ID
+        if (scheduleId != null && krsDetailId != null) {
+          scheduleMap[scheduleId] = krsDetailId;
+        }
+
         final name = (m['nama_matakuliah'] ?? m['nama'] ?? '')
             .toString()
             .trim()
@@ -176,11 +191,13 @@ class _JadwalPageState extends State<JadwalPage> {
       setState(() {
         _filterJadwalIds = ids;
         _filterNames = names;
+        _scheduleIdToKrsDetailId = scheduleMap;
       });
     } catch (e) {
       setState(() {
         _filterJadwalIds = {};
         _filterNames = {};
+        _scheduleIdToKrsDetailId = {};
       });
     }
   }
@@ -323,9 +340,13 @@ class _JadwalPageState extends State<JadwalPage> {
 
         if (!matchesKrs) continue;
 
+        // Resolve ID: Use KRS Detail ID if available (mapped from Schedule ID), otherwise fallback to Schedule ID
+        final scheduleId = j['id'] is int ? j['id'] : int.tryParse(j['id']?.toString() ?? '0') ?? 0;
+        final finalId = _scheduleIdToKrsDetailId[scheduleId] ?? scheduleId;
+
         // Create Event object
         final ev = Event(
-          id: j['id'] ?? 0,
+          id: finalId,
           kode: j['kode'] ?? '',
           namaMatkul: j['nama_matakuliah'] ?? '',
           dosen: j['dosen'] ?? '',
