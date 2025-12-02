@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:project_mobileprog/screens/chat_screen.dart';
 
 class FaqScreen extends StatefulWidget {
   const FaqScreen({super.key});
@@ -108,7 +109,7 @@ class _FaqScreenState extends State<FaqScreen> {
                       style:
                           TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
                     ),
-                    const SizedBox(height: 16),
+                    const SizedBox(height: 50),
 
                     // ===== SEARCH BAR =====
                     Container(
@@ -128,7 +129,7 @@ class _FaqScreenState extends State<FaqScreen> {
                         controller: _searchC,
                         decoration: const InputDecoration(
                           icon: Icon(Icons.search),
-                          hintText: "Search Help",
+                          hintText: "Cari Pertanyaan",
                           border: InputBorder.none,
                         ),
                         onChanged: (value) {
@@ -139,13 +140,6 @@ class _FaqScreenState extends State<FaqScreen> {
                       ),
                     ),
                     const SizedBox(height: 20),
-
-                    const Text(
-                      "FAQ",
-                      style:
-                          TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
-                    ),
-                    const SizedBox(height: 8),
 
                     // ===== LIST FAQ =====
                     Expanded(
@@ -186,7 +180,12 @@ class _FaqScreenState extends State<FaqScreen> {
                           height: 48,
                           child: ElevatedButton(
                             onPressed: () {
-                              // TODO: arahkan ke screen chat admin
+                              Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => const ChatScreen(),
+                              ),
+                            );
                             },
                             style: ElevatedButton.styleFrom(
                               backgroundColor: const Color(0xFF7BA7E2),
