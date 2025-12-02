@@ -3,6 +3,8 @@ import 'dart:typed_data';
 import 'package:camera/camera.dart';
 import 'package:flutter/foundation.dart';
 
+import 'package:image/image.dart' as img;
+
 class WebCamera {
   // Dummy constant untuk kompatibilitas dengan kode web
   static const String viewType = 'webcam-view';
@@ -64,6 +66,19 @@ class WebCamera {
       // Baca bytes dari file
       final Uint8List imageBytes = await image.readAsBytes();
       
+      // Crop to square using image package
+      final img.Image? original = img.decodeImage(imageBytes);
+      if (original != null) {
+        final int size = original.width < original.height ? original.width : original.height;
+        final int x = (original.width - size) ~/ 2;
+        final int y = (original.height - size) ~/ 2;
+        
+        final img.Image cropped = img.copyCrop(original, x: x, y: y, width: size, height: size);
+        
+        // Return as PNG to match web implementation and filename extension
+        return Uint8List.fromList(img.encodePng(cropped));
+      }
+
       return imageBytes;
     } catch (e) {
       throw Exception('Gagal mengambil gambar: $e');

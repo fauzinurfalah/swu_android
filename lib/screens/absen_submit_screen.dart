@@ -12,7 +12,7 @@ import '../api/api_service.dart';
 
 // Web-specific imports
 import 'webcam_helper.dart' if (dart.library.io) 'webcam_helper_stub.dart';
-import 'package:camera/camera.dart' if (dart.library.html) '';
+import 'package:camera/camera.dart';
 
 class AbsenSubmitScreen extends StatefulWidget {
   final int idKrsDetail;
@@ -318,7 +318,41 @@ class _AbsenSubmitScreenState extends State<AbsenSubmitScreen> {
     } else {
       // Android: gunakan CameraPreview dari package camera
       if (_isCameraReady && cam.controller != null) {
-        return CameraPreview(cam.controller!);
+        final size = MediaQuery.of(context).size;
+        // Calculate scale to cover the 1:1 aspect ratio
+        // Camera preview aspect ratio is usually 4:3 or 16:9
+        // We want to fill a 1:1 box.
+        // Since we are inside an AspectRatio(1), the parent width == height.
+        // The CameraPreview tries to fit inside.
+        // To cover, we need to scale it up.
+        
+        var scale = 1.0;
+        try {
+            final previewSize = cam.controller!.value.previewSize!;
+            // previewSize is usually landscape (e.g. 640x480).
+            // But on mobile portrait, the preview is rotated.
+            // Aspect ratio of the widget is previewSize.height / previewSize.width (if portrait)
+            // Actually CameraPreview handles rotation.
+            // Let's rely on the aspect ratio of the controller.
+            final aspectRatio = cam.controller!.value.aspectRatio;
+            
+            // If aspect ratio is not 1, we need to scale.
+            // If portrait, aspectRatio < 1 (e.g. 3/4 = 0.75).
+            // To fill a square (1.0), we need to scale by 1/aspectRatio (1/0.75 = 1.33)
+            // If landscape, aspectRatio > 1 (e.g. 4/3 = 1.33).
+            // To fill a square, we need to scale by aspectRatio (1.33).
+            
+            scale = 1 / aspectRatio;
+            if (scale < 1) scale = 1 / scale; 
+        } catch (e) {
+            scale = 1.0;
+        }
+
+        return Transform.scale(
+          scale: scale,
+          alignment: Alignment.center,
+          child: CameraPreview(cam.controller!),
+        );
       } else {
         return Center(
           child: Column(
@@ -381,16 +415,18 @@ class _AbsenSubmitScreenState extends State<AbsenSubmitScreen> {
               const SizedBox(height: 16),
 
               // Live Camera (web & Android)
-              Container(
-                width: double.infinity,
-                height: 220,
-                decoration: BoxDecoration(
-                  color: Colors.grey.shade200,
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(12),
-                  child: _buildCameraPreview(),
+              AspectRatio(
+                aspectRatio: 1,
+                child: Container(
+                  width: double.infinity,
+                  decoration: BoxDecoration(
+                    color: Colors.grey.shade200,
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(12),
+                    child: _buildCameraPreview(),
+                  ),
                 ),
               ),
 
@@ -408,16 +444,18 @@ class _AbsenSubmitScreenState extends State<AbsenSubmitScreen> {
                 const SizedBox(height: 6),
                 Container(
                   width: double.infinity,
-                  height: 150,
                   decoration: BoxDecoration(
                     color: Colors.grey.shade200,
                     borderRadius: BorderRadius.circular(12),
                   ),
-                  child: ClipRRect(
-                    borderRadius: BorderRadius.circular(12),
-                    child: Image.memory(
-                      _photoBytes!,
-                      fit: BoxFit.cover,
+                  child: AspectRatio(
+                    aspectRatio: 1,
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(12),
+                      child: Image.memory(
+                        _photoBytes!,
+                        fit: BoxFit.cover,
+                      ),
                     ),
                   ),
                 ),
@@ -606,24 +644,26 @@ class _AbsenSubmitScreenState extends State<AbsenSubmitScreen> {
               // Photo
               Container(
                 width: double.infinity,
-                height: 220,
                 decoration: BoxDecoration(
                   color: Colors.grey.shade200,
                   borderRadius: BorderRadius.circular(12),
                 ),
-                child: fotoUrl != null
-                    ? ClipRRect(
-                        borderRadius: BorderRadius.circular(12),
-                        child: Image.network(
-                          fotoUrl.toString(),
-                          fit: BoxFit.cover,
-                          errorBuilder: (_, __, ___) =>
-                              const Center(child: Icon(Icons.broken_image)),
+                child: AspectRatio(
+                  aspectRatio: 1,
+                  child: fotoUrl != null
+                      ? ClipRRect(
+                          borderRadius: BorderRadius.circular(12),
+                          child: Image.network(
+                            fotoUrl.toString(),
+                            fit: BoxFit.cover,
+                            errorBuilder: (_, __, ___) =>
+                                const Center(child: Icon(Icons.broken_image)),
+                          ),
+                        )
+                      : const Center(
+                          child: Icon(Icons.image, size: 48, color: Colors.grey),
                         ),
-                      )
-                    : const Center(
-                        child: Icon(Icons.image, size: 48, color: Colors.grey),
-                      ),
+                ),
               ),
               const SizedBox(height: 16),
 
@@ -647,7 +687,7 @@ class _AbsenSubmitScreenState extends State<AbsenSubmitScreen> {
                             TileLayer(
                               urlTemplate:
                                   'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-                              userAgentPackageName: 'com.example.app',
+                              userAgentPackageName: 'com.example.project_mobileprog',
                             ),
                             MarkerLayer(
                               markers: [

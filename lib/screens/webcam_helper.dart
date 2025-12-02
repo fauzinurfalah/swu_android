@@ -2,6 +2,8 @@ import 'dart:typed_data';
 import 'dart:html' as html;
 import 'dart:ui_web' as ui_web;
 
+import 'package:camera/camera.dart';
+
 class WebCamera {
 
   WebCamera._internal() {
@@ -12,6 +14,9 @@ class WebCamera {
 
   static const String viewType = 'webcam-view';
   static bool _viewRegistered = false;
+
+  // Dummy controller for interface compatibility
+  CameraController? get controller => null;
 
   html.VideoElement? _video;
   html.MediaStream? _stream;
@@ -83,12 +88,18 @@ class WebCamera {
       height = _video!.videoHeight;
     }
 
+    // Calculate square crop
+    var size = width < height ? width : height;
+    var x = (width - size) / 2;
+    var y = (height - size) / 2;
+
     _canvas!
-      ..width = width
-      ..height = height;
+      ..width = size
+      ..height = size;
 
     final ctx = _canvas!.context2D;
-    ctx.drawImageScaled(_video!, 0, 0, width, height);
+    // drawImageScaledFromSource(image, sx, sy, sWidth, sHeight, dx, dy, dWidth, dHeight)
+    ctx.drawImageScaledFromSource(_video!, x, y, size, size, 0, 0, size, size);
 
     final blob = await _canvas!.toBlob('image/png');
     if (blob == null) {
