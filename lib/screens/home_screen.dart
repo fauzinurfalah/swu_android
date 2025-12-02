@@ -10,6 +10,7 @@ import 'input_krs_screen.dart';
 import 'transkip.dart';
 import 'sp_screen.dart';
 import 'khs.dart';
+import 'eperpus_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -200,6 +201,18 @@ class _HomeScreenState extends State<HomeScreen> {
                       },
                     ),
                     _menuItem(
+                      'assets/icons/perpus.png', // Placeholder icon
+                      'E - Perpus',
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => const EPerpusScreen(),
+                          ),
+                        );
+                      },
+                    ), 
+                    _menuItem(
                       'assets/icons/faq_circle.png',
                       'Bantuan',
                       onTap: () {
@@ -211,11 +224,9 @@ class _HomeScreenState extends State<HomeScreen> {
                         );
                       },
                     ),
-                    const SizedBox(), 
                   ],
                 ),
               ),
-
               const SizedBox(height: 24),
             ],
           ),
@@ -385,8 +396,8 @@ class _HomeScreenState extends State<HomeScreen> {
               child: Image.asset(
                 assetPath,
                 color: Colors.white,
-                width: 34,
-                height: 34,
+                width: 78,
+                height: 78,
               ),
             ),
           ),

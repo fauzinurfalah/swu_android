@@ -33,7 +33,35 @@ class _FaqScreenState extends State<FaqScreen> {
       answer:
           "Ini aplikasi buatan mimin admin kampus : Fauzi, Fadilah, Phasa, Kukuh, Kia, Jelita, Nana",
     ),
+    _FaqItem(
+      question: "SP bayar berapa?",
+      answer:
+          "Per sks 500.000. biaya admin 200.000 jadi total 700.000. dikali sks mata kuliah yang kamu ambil SP nya. yaahahaha hayyukk",
+    ),
+    _FaqItem(
+      question: "Bagaimana caranya mengambil mata kuliah?",
+      answer:
+          "Masuk ke menu KRS terus input semester kamu dulu, setelah itu pilih mata kuliah yang kamu inginkan. kalo gabisa ya dateng aja ke kampus tapi kamu dateng adminnya pulang",
+    ),
+    _FaqItem(
+      question: "Apa lagu favorit admin?",
+      answer:
+          "Lagu favorit admin adalah lagu Stecu Stecu",
+    ),
+    _FaqItem(
+      question: "Kapan aku lulus?",
+      answer:
+          "Kapan - kapan aja deh",
+    ),
   ];
+
+  List<_FaqItem> _filteredItems = [];
+
+  @override
+  void initState() {
+    super.initState();
+    _filteredItems = _items;
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -139,7 +167,11 @@ class _FaqScreenState extends State<FaqScreen> {
                         ),
                         onChanged: (value) {
                           setState(() {
-                            // kalau mau dibuat filter, tinggal di-handle di sini
+                            _filteredItems = _items
+                                .where((item) => item.question
+                                    .toLowerCase()
+                                    .contains(value.toLowerCase()))
+                                .toList();
                           });
                         },
                       ),
@@ -149,11 +181,11 @@ class _FaqScreenState extends State<FaqScreen> {
                     // ===== LIST FAQ =====
                     Expanded(
                       child: ListView.separated(
-                        itemCount: _items.length,
+                        itemCount: _filteredItems.length,
                         separatorBuilder: (_, __) =>
                             const Divider(height: 1, color: Color(0xFFE0E0E0)),
                         itemBuilder: (context, index) {
-                          final item = _items[index];
+                          final item = _filteredItems[index];
                           return _buildFaqTile(item);
                         },
                       ),

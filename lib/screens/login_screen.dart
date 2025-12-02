@@ -56,17 +56,24 @@ class _LoginScreenState extends State<LoginScreen> {
 
     if (res['status'] == 200) {
       await ApiService.saveToken(res['data'], emailController.text);
+      
       QuickAlert.show(
         context: context,
         type: QuickAlertType.success,
         text: 'Login Berhasil',
-        onConfirmBtnTap: () {
+        autoCloseDuration: const Duration(seconds: 2),
+        showConfirmBtn: false,
+      );
+      
+      // Navigate to home screen after 2 seconds
+      Future.delayed(const Duration(seconds: 2), () {
+        if (mounted) {
           Navigator.pushReplacement(
             context,
             MaterialPageRoute(builder: (_) => const HomeScreen()),
           );
-        },
-      );
+        }
+      });
     } else {
       final errorMessage = res['message'] ?? 'Email / Password Salah!';
       QuickAlert.show(
