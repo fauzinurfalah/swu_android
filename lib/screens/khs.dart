@@ -23,17 +23,18 @@ class _KhsPageState extends State<KhsPage> {
     {"matkul": "Algoritma & Pemrograman", "sks": 3, "nilai": "A"},
     {"matkul": "Basis Data", "sks": 3, "nilai": "A-"},
     {"matkul": "Pemrograman Mobile", "sks": 3, "nilai": "A"},
+    {"matkul": "Matematika Diskrit", "sks": 3, "nilai": "B+"},
+    {"matkul": "Sistem Operasi", "sks": 3, "nilai": "A"},
+    {"matkul": "Jaringan Komputer", "sks": 3, "nilai": "B"},
+    {"matkul": "Bahasa Inggris", "sks": 2, "nilai": "A"},
+    {"matkul": "Pendidikan Kewarganegaraan", "sks": 2, "nilai": "A"},
   ];
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFF7BA7E2),
-      floatingActionButton: FloatingActionButton(
-        backgroundColor: const Color(0xFF7BA7E2),
-        child: const Icon(Icons.add, color: Colors.white),
-        onPressed: () {}, // nanti dipakai buat input nilai jika perlu
-      ),
+      // floatingActionButton removed
 
       body: SafeArea(
         child: Column(

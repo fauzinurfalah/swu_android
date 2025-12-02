@@ -710,72 +710,73 @@ class _JadwalPageState extends State<JadwalPage> {
             ],
           ),
           const SizedBox(height: 10),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
             children: [
-              Expanded(
-                child: Row(
-                  children: [
-                    ElevatedButton.icon(
-                      onPressed: () {
-                        if (e.linkZoom.isNotEmpty) {
-                          // TODO: open link zoom
-                        } else {
-                          // TODO: show snackbar "Link Zoom belum tersedia"
-                        }
-                      },
-                      icon: Icon(Icons.videocam,
-                          color: Colors.blue.shade900),
-                      label: Text(
-                        'Link Zoom',
-                        style: TextStyle(color: Colors.blue.shade900),
-                      ),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.white,
-                        elevation: 0,
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 12,
-                          vertical: 8,
-                        ),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    ElevatedButton.icon(
-                      onPressed: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (_) => AbsenPage(
-                              idKrsDetail: e.id,
-                              namaMatkul: e.namaMatkul,
-                            ),
-                          ),
-                        );
-                      },
-                      icon: Icon(
-                        Icons.check_circle,
-                        color: Colors.green.shade700,
-                      ),
-                      label: Text(
-                        'Presensi',
-                        style: TextStyle(color: Colors.green.shade700),
-                      ),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.white,
-                        elevation: 0,
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 12,
-                          vertical: 8,
-                        ),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(8),
-                        ),
+              ElevatedButton.icon(
+                onPressed: () {
+                  if (e.linkZoom.isNotEmpty) {
+                    // TODO: open link zoom
+                  } else {
+                    // TODO: show snackbar "Link Zoom belum tersedia"
+                  }
+                },
+                icon: Icon(Icons.videocam,
+                    color: Colors.blue.shade900, size: 18),
+                label: Text(
+                  'Link Zoom',
+                  style: TextStyle(
+                    color: Colors.blue.shade900,
+                    fontSize: 12,
+                  ),
+                ),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.white,
+                  elevation: 0,
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 8,
+                  ),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                ),
+              ),
+              ElevatedButton.icon(
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => AbsenPage(
+                        idKrsDetail: e.id,
+                        namaMatkul: e.namaMatkul,
                       ),
                     ),
-                  ],
+                  );
+                },
+                icon: Icon(
+                  Icons.check_circle,
+                  color: Colors.green.shade700,
+                  size: 18,
+                ),
+                label: Text(
+                  'Presensi',
+                  style: TextStyle(
+                    color: Colors.green.shade700,
+                    fontSize: 12,
+                  ),
+                ),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.white,
+                  elevation: 0,
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 8,
+                  ),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
                 ),
               ),
               ElevatedButton.icon(
@@ -783,7 +784,7 @@ class _JadwalPageState extends State<JadwalPage> {
                   // TODO: open/download materi
                 },
                 icon: Icon(Icons.picture_as_pdf,
-                    color: Colors.red.shade700),
+                    color: Colors.red.shade700, size: 18),
                 label: Text(
                   e.materi.isNotEmpty ? e.materi : 'materi.pdf',
                   style: TextStyle(
@@ -795,7 +796,7 @@ class _JadwalPageState extends State<JadwalPage> {
                   backgroundColor: Colors.white,
                   foregroundColor: Colors.red.shade700,
                   padding: const EdgeInsets.symmetric(
-                    horizontal: 12,
+                    horizontal: 10,
                     vertical: 8,
                   ),
                   shape: RoundedRectangleBorder(

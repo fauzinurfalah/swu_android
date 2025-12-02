@@ -28,6 +28,11 @@ class _FaqScreenState extends State<FaqScreen> {
       answer:
           "Belum ada di aplikasi. \nKalo butuh panduan, dateng aja ke kampus. \nNanti di jelasin sama mimin admin kalo mood ",
     ),
+    _FaqItem(
+      question: "Ini aplikasi buatan siapa?",
+      answer:
+          "Ini aplikasi buatan mimin admin kampus : Fauzi, Fadilah, Phasa, Kukuh, Kia, Jelita, Nana",
+    ),
   ];
 
   @override
