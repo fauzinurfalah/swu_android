@@ -9,6 +9,7 @@ import 'jadwal_screen.dart';
 import 'input_krs_screen.dart';
 import 'transkip.dart';
 import 'sp_screen.dart';
+import 'khs.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -51,8 +52,23 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
+  // Helper untuk mendapatkan nilai semester saat ini
+  // 🟢 ASUMSI: Jika data API Anda tidak memiliki field 'semester', 
+  // Anda bisa menghitungnya dari angkatan dan tahun/bulan saat ini.
+  // Untuk saat ini, kita akan menggunakan nilai statis 5 jika field 'semester' 
+  // tidak ada di data 'user', atau Anda bisa menambahkannya ke data user jika tersedia.
+  int _getCurrentSemester() {
+    // ⚠️ Ganti logika ini jika Anda memiliki data semester yang lebih akurat dari API.
+    return user?['semester'] ?? 5; // Menggunakan 5 sebagai default/contoh
+  }
+
   @override
   Widget build(BuildContext context) {
+    // 🟢 Pastikan user data sudah dimuat sebelum mengaksesnya, atau gunakan nilai default.
+    final currentNama = user?["nama"] ?? "Nama Mahasiswa";
+    final currentNim = user?["nim"] ?? "A00.0000.0000";
+    final currentSemester = _getCurrentSemester();
+
     return Scaffold(
       backgroundColor: const Color(0xFFF7F7F7),
       bottomNavigationBar: const BottomNav(initialIndex: 0),
@@ -158,10 +174,9 @@ class _HomeScreenState extends State<HomeScreen> {
                         );
                       },
                     ),
-                    _menuItem(
-                      'assets/icons/khs.png',
-                      'Kartu Hasil Studi',
-                    ),
+
+                    _menuItem('assets/icons/khs.png', 'Kartu Hasil Studi'),
+
                     _menuItem(
                       'assets/icons/sp.png',
                       'SP',
