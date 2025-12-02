@@ -11,6 +11,7 @@ import 'transkip.dart';
 import 'sp_screen.dart';
 import 'khs.dart';
 import 'eperpus_screen.dart';
+import 'notification_screen.dart'; 
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -266,6 +267,28 @@ class _HomeScreenState extends State<HomeScreen> {
                   ),
                 ),
               ),
+              GestureDetector(
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => const NotificationScreen()),
+                  );
+                },
+                child: Container(
+                  height: 44,
+                  width: 44,
+                  decoration: const BoxDecoration(
+                    color: Colors.white,
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(
+                    Icons.notifications,
+                    color: Color(0xFF7BA7E2),
+                    size: 24,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 12),
               Container(
                 height: 44,
                 width: 44,
