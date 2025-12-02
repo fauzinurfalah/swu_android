@@ -52,19 +52,13 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
-  // Helper untuk mendapatkan nilai semester saat ini
-  // 🟢 ASUMSI: Jika data API Anda tidak memiliki field 'semester', 
-  // Anda bisa menghitungnya dari angkatan dan tahun/bulan saat ini.
-  // Untuk saat ini, kita akan menggunakan nilai statis 5 jika field 'semester' 
-  // tidak ada di data 'user', atau Anda bisa menambahkannya ke data user jika tersedia.
   int _getCurrentSemester() {
-    // ⚠️ Ganti logika ini jika Anda memiliki data semester yang lebih akurat dari API.
-    return user?['semester'] ?? 5; // Menggunakan 5 sebagai default/contoh
+    return user?['semester'] ?? 5; 
   }
 
   @override
   Widget build(BuildContext context) {
-    // 🟢 Pastikan user data sudah dimuat sebelum mengaksesnya, atau gunakan nilai default.
+
     final currentNama = user?["nama"] ?? "Nama Mahasiswa";
     final currentNim = user?["nim"] ?? "A00.0000.0000";
     final currentSemester = _getCurrentSemester();
@@ -175,7 +169,23 @@ class _HomeScreenState extends State<HomeScreen> {
                       },
                     ),
 
-                    _menuItem('assets/icons/khs.png', 'Kartu Hasil Studi'),
+                    _menuItem(
+                      'assets/icons/khs.png', 
+                      'Kartu Hasil Studi',
+                      onTap: user != null ? () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => KhsPage(
+                              // Meneruskan data yang diambil dari state
+                              nama: currentNama,
+                              nim: currentNim,
+                              semester: currentSemester,
+                            ),
+                          ),
+                        );
+                      } : null, // Menonaktifkan tombol jika data user belum dimuat
+                    ),
 
                     _menuItem(
                       'assets/icons/sp.png',
@@ -201,7 +211,7 @@ class _HomeScreenState extends State<HomeScreen> {
                         );
                       },
                     ),
-                    const SizedBox(), // slot kosong biar layout mirip desain
+                    const SizedBox(), 
                   ],
                 ),
               ),
@@ -232,7 +242,6 @@ class _HomeScreenState extends State<HomeScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // BARIS SALAM + LOGO
           Row(
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
@@ -351,7 +360,6 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  // ====== MENU ITEM KOTAK HITAM ======
   Widget _menuItem(String assetPath, String label, {VoidCallback? onTap}) {
     return InkWell(
       onTap: onTap,
