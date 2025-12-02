@@ -21,9 +21,10 @@ class _BottomNavState extends State<BottomNav> {
 
   void _onItemTapped(int i, BuildContext context) {
     setState(() => index = i);
-    
+
     // Handle navigation based on index
-    if (i == 1) { // News tab
+    if (i == 1) {
+      // News tab
       // Check if we're not already on the Berita page
       if (!(context.widget is Berita)) {
         Navigator.pushReplacement(
@@ -31,7 +32,8 @@ class _BottomNavState extends State<BottomNav> {
           MaterialPageRoute(builder: (context) => const Berita()),
         );
       }
-    } else if (i == 0) { // Home tab
+    } else if (i == 0) {
+      // Home tab
       // Check if we're not already on the Home page
       if (!(context.widget is HomeScreen)) {
         Navigator.pushReplacement(
@@ -45,23 +47,24 @@ class _BottomNavState extends State<BottomNav> {
   @override
   Widget build(BuildContext context) {
     return BottomNavigationBar(
-      type: BottomNavigationBarType.fixed, 
-      selectedItemColor: Colors.black, 
-      unselectedItemColor: Colors.black54, 
+      type: BottomNavigationBarType.fixed,
+      backgroundColor: const Color(0xFF7BA7E2),
+      selectedItemColor: Colors.white,
+      unselectedItemColor: Colors.white54,
       selectedLabelStyle: const TextStyle(fontWeight: FontWeight.bold),
-      unselectedLabelStyle: const TextStyle(color: Colors.black54),
+      unselectedLabelStyle: const TextStyle(color: Colors.white54),
 
       currentIndex: index,
       onTap: (i) => _onItemTapped(i, context),
       items: const [
-        BottomNavigationBarItem(icon: ImageIcon(
-            AssetImage('assets/icons/home.png'),
-            size: 26,
-          ), label: "Home"),
-        BottomNavigationBarItem(icon: ImageIcon(
-            AssetImage('assets/icons/news.png'),
-            size: 26,
-          ), label: "News"),
+        BottomNavigationBarItem(
+          icon: ImageIcon(AssetImage('assets/icons/home.png'), size: 26),
+          label: "Home",
+        ),
+        BottomNavigationBarItem(
+          icon: ImageIcon(AssetImage('assets/icons/news.png'), size: 26),
+          label: "News",
+        ),
       ],
     );
   }
