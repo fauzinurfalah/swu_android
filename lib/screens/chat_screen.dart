@@ -98,17 +98,37 @@ class _ChatScreenState extends State<ChatScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text(
-                      "Chat Admin",
-                      style:
-                          TextStyle(fontSize: 28, fontWeight: FontWeight.bold),
+                    // ===== HEADER "CHAT ADMIN" + TITIK TIGA =====
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.center,
+                      children: [
+                        const Expanded(
+                          child: Text(
+                            "Chat Admin",
+                            style: TextStyle(
+                              fontSize: 28,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
+                        IconButton(
+                          onPressed: () {
+                            // TODO: opsi menu (hapus chat, info admin, dll) jika diperlukan
+                          },
+                          icon: const Icon(Icons.more_vert, size: 24),
+                          color: Colors.black87,
+                        ),
+                      ],
                     ),
-                    const SizedBox(height: 4),
-                    const Text(
-                      "Frequently Asked Question",
-                      style:
-                          TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
+                    const SizedBox(height: 8),
+
+                    // ===== GARIS PEMBATAS DI BAWAH CHAT ADMIN =====
+                    Container(
+                      height: 1.2,
+                      width: double.infinity,
+                      color: Colors.grey.withOpacity(0.3),
                     ),
+
                     const SizedBox(height: 16),
 
                     // ===== LIST CHAT =====
