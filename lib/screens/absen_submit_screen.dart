@@ -12,6 +12,7 @@ import '../api/api_service.dart';
 
 // Web-specific imports
 import 'webcam_helper.dart' if (dart.library.io) 'webcam_helper_stub.dart';
+import 'package:camera/camera.dart' if (dart.library.html) '';
 
 class AbsenSubmitScreen extends StatefulWidget {
   final int idKrsDetail;
@@ -50,8 +51,8 @@ class _AbsenSubmitScreenState extends State<AbsenSubmitScreen> {
   Future<void> _init() async {
     await _fetchExisting();
 
-    if (_existing == null && kIsWeb) {
-      // Initialize camera only on web and if not submitted
+    if (_existing == null) {
+      // Initialize camera on both web and Android if not submitted
       WidgetsBinding.instance.addPostFrameCallback((_) {
         _initializeCameraAfterRender();
       });
@@ -83,9 +84,7 @@ class _AbsenSubmitScreenState extends State<AbsenSubmitScreen> {
 
   @override
   void dispose() {
-    if (kIsWeb) {
-      cam.dispose(); // matikan stream kamera saat keluar screen
-    }
+    cam.dispose(); // matikan stream kamera saat keluar screen (web & Android)
     super.dispose();
   }
 
@@ -310,6 +309,31 @@ class _AbsenSubmitScreenState extends State<AbsenSubmitScreen> {
   }
   // =============================================================
 
+  Widget _buildCameraPreview() {
+    if (kIsWeb) {
+      // Web: gunakan HtmlElementView
+      return const HtmlElementView(
+        viewType: WebCamera.viewType,
+      );
+    } else {
+      // Android: gunakan CameraPreview dari package camera
+      if (_isCameraReady && cam.controller != null) {
+        return CameraPreview(cam.controller!);
+      } else {
+        return Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: const [
+              CircularProgressIndicator(),
+              SizedBox(height: 8),
+              Text('Memuat kamera...'),
+            ],
+          ),
+        );
+      }
+    }
+  }
+
   Widget _buildNotSubmittedView() {
     return Column(
       children: [
@@ -356,7 +380,7 @@ class _AbsenSubmitScreenState extends State<AbsenSubmitScreen> {
               ),
               const SizedBox(height: 16),
 
-              // Live Camera (selalu tampil di web)
+              // Live Camera (web & Android)
               Container(
                 width: double.infinity,
                 height: 220,
@@ -366,24 +390,7 @@ class _AbsenSubmitScreenState extends State<AbsenSubmitScreen> {
                 ),
                 child: ClipRRect(
                   borderRadius: BorderRadius.circular(12),
-                  child: kIsWeb
-                      ? const HtmlElementView(
-                          viewType: WebCamera.viewType,
-                        )
-                      : Center(
-                          child: Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: const [
-                              Icon(
-                                Icons.camera_alt,
-                                size: 64,
-                                color: Colors.grey,
-                              ),
-                              SizedBox(height: 8),
-                              Text('Kamera hanya tersedia di versi web'),
-                            ],
-                          ),
-                        ),
+                  child: _buildCameraPreview(),
                 ),
               ),
 
