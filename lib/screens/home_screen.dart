@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:project_mobileprog/screens/faq_screen.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:dio/dio.dart';
 import '../api/api_service.dart';
@@ -176,6 +177,12 @@ class _HomeScreenState extends State<HomeScreen> {
                       },
                     ),
 
+                    _menuItem('assets/icons/faq_circle.png', 'Bantuan',
+                      onTap: () {
+                        Navigator.push(context, 
+                        MaterialPageRoute(builder: (_) => const FaqScreen()));
+                      },
+                    ),
                     const SizedBox(),
                   ],
                 ),
