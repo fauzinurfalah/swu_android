@@ -54,103 +54,139 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: const Color(0xFFF7F7F7),
       bottomNavigationBar: const BottomNav(initialIndex: 0),
-
       body: SafeArea(
         child: SingleChildScrollView(
           child: Column(
             children: [
               _buildBlueHeader(),
+
               const SizedBox(height: 24),
 
-              // ABSENSI
+              // ====== CARD ABSENSI ======
               Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                child: Row(
-                  children: [
-                    const SizedBox(width: 16),
-
-                    Expanded(
-                      child: InkWell(
-                        onTap: () {
-                          Navigator.push(context,
-                            MaterialPageRoute(builder: (_) => const JadwalPage()));
-                        },
-                        borderRadius: BorderRadius.circular(16),
-
-                        child: Container(
-                          height: 100,
-                          decoration: BoxDecoration(
-                            color: const Color.fromARGB(255, 40, 185, 27),
-                            borderRadius: BorderRadius.circular(16),
-                          ),
-                          child: const Center(
-                            child: Text(
-                              'Absensi',
-                              style: TextStyle(
-                                color: Colors.white,
-                                fontSize: 20,
-                                fontWeight: FontWeight.bold,
-                              ),
+                padding: const EdgeInsets.symmetric(horizontal: 20),
+                child: InkWell(
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (_) => const JadwalPage()),
+                    );
+                  },
+                  borderRadius: BorderRadius.circular(24),
+                  child: Container(
+                    height: 110,
+                    decoration: BoxDecoration(
+                      color: Colors.black,
+                      borderRadius: BorderRadius.circular(24),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.15),
+                          blurRadius: 10,
+                          offset: const Offset(0, 6),
+                        ),
+                      ],
+                    ),
+                    child: Stack(
+                      children: [
+                        // TEXT DI KIRI ATAS
+                        Positioned(
+                          left: 20,
+                          top: 18,
+                          child: Text(
+                            "Absensi",
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 22,
+                              fontWeight: FontWeight.bold,
                             ),
                           ),
                         ),
-                      ),
+
+                        // ICON PNG DI KANAN TENGAH
+                        Positioned(
+                          right: 20,
+                          top: 28,
+                          child: const Icon(
+                            Icons.people_alt_outlined,
+                            color: Colors.white,
+                            size: 50,
+                          ),
+                        ),
+                      ],
                     ),
-                  ],
+                  ),
                 ),
               ),
 
-              const SizedBox(height: 20),
 
-              // MENU
+              const SizedBox(height: 26),
+
+              // ====== GRID MENU ======
               Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 25),
+                padding: const EdgeInsets.symmetric(horizontal: 28),
                 child: GridView.count(
                   crossAxisCount: 3,
                   shrinkWrap: true,
                   physics: const NeverScrollableScrollPhysics(),
-                  mainAxisSpacing: 25,
-                  crossAxisSpacing: 25,
-
+                  mainAxisSpacing: 26,
+                  crossAxisSpacing: 26,
+                  childAspectRatio: 0.9,
                   children: [
                     _menuItem(
                       'assets/icons/input_krs.png',
                       'KRS',
                       onTap: () {
-                        Navigator.push(context,
-                          MaterialPageRoute(builder: (_) => const InputKrsScreen()));
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => const InputKrsScreen(),
+                          ),
+                        );
                       },
                     ),
-
                     _menuItem(
                       'assets/icons/daftar_nilai.png',
-                      'Transkrip Nilai',
+                      'Daftar Nilai',
                       onTap: () {
-                        Navigator.push(context,
-                          MaterialPageRoute(builder: (_) => const TranskipPage()));
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => const TranskipPage(),
+                          ),
+                        );
                       },
                     ),
-
-                    _menuItem('assets/icons/khs.png', 'Kartu Hasil Studi'),
-
+                    _menuItem(
+                      'assets/icons/khs.png',
+                      'Kartu Hasil Studi',
+                    ),
                     _menuItem(
                       'assets/icons/sp.png',
                       'SP',
                       onTap: () {
-                        Navigator.push(context,
-                            MaterialPageRoute(builder: (_) => const SpScreen()));
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => const SpScreen(),
+                          ),
+                        );
                       },
                     ),
-
-                    _menuItem('assets/icons/faq_circle.png', 'Bantuan',
+                    _menuItem(
+                      'assets/icons/faq_circle.png',
+                      'Bantuan',
                       onTap: () {
-                        Navigator.push(context, 
-                        MaterialPageRoute(builder: (_) => const FaqScreen()));
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => const FaqScreen(),
+                          ),
+                        );
                       },
                     ),
-                    const SizedBox(),
+                    const SizedBox(), // slot kosong biar layout mirip desain
                   ],
                 ),
               ),
@@ -163,14 +199,14 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  // HEADER
+  // ====== HEADER BIRU ======
   Widget _buildBlueHeader() {
     final hasFoto =
         (user?["foto"] != null && (user?["foto"]?.toString().isNotEmpty ?? false));
 
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.fromLTRB(20, 28, 20, 30),
+      padding: const EdgeInsets.fromLTRB(20, 24, 20, 32),
       decoration: const BoxDecoration(
         color: Color(0xFF7BA7E2),
         borderRadius: BorderRadius.only(
@@ -178,10 +214,10 @@ class _HomeScreenState extends State<HomeScreen> {
           bottomRight: Radius.circular(40),
         ),
       ),
-
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          // BARIS SALAM + LOGO
           Row(
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
@@ -195,78 +231,97 @@ class _HomeScreenState extends State<HomeScreen> {
                   ),
                 ),
               ),
-
               Container(
-                height: 46,
-                width: 46,
+                height: 44,
+                width: 44,
                 decoration: const BoxDecoration(
                   color: Colors.white,
                   shape: BoxShape.circle,
                 ),
-                child: Padding(
-                  padding: const EdgeInsets.all(6),
-                  child: Image.asset('assets/images/swu.png'),
-                ),
+                padding: const EdgeInsets.all(6),
+                child: Image.asset('assets/images/swu.png'),
               ),
             ],
           ),
 
-          const SizedBox(height: 25),
+          const SizedBox(height: 24),
 
+          // KARTU PROFIL
           GestureDetector(
             onTap: () {
-              Navigator.push(context,
-                MaterialPageRoute(builder: (_) => const Biodata()));
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const Biodata()),
+              );
             },
-
             child: Container(
               width: double.infinity,
-              padding: const EdgeInsets.all(14),
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
               decoration: BoxDecoration(
                 color: Colors.white,
-                borderRadius: BorderRadius.circular(20),
+                borderRadius: BorderRadius.circular(26),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.18),
+                    blurRadius: 14,
+                    offset: const Offset(0, 8),
+                  ),
+                ],
               ),
-
               child: Row(
                 children: [
                   CircleAvatar(
-                    radius: 35,
+                    radius: 30,
                     backgroundImage: hasFoto
                         ? NetworkImage(user!["foto"])
                         : const AssetImage("assets/images/default_user.png")
                             as ImageProvider,
                   ),
-
-                  const SizedBox(width: 12),
-
+                  const SizedBox(width: 14),
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(user?["nim"] ?? "NIM123456"),
-                        const SizedBox(height: 2),
+                        Text(
+                          user?["nim"] ?? "A11.2020.0000",
+                          style: const TextStyle(
+                            fontSize: 12,
+                            color: Colors.grey,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
                         Text(
                           user?["nama"] ?? "Nama Mahasiswa",
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                           style: const TextStyle(
-                            fontSize: 17,
+                            fontSize: 16,
                             fontWeight: FontWeight.bold,
                           ),
                         ),
-                        const SizedBox(height: 2),
-
+                        const SizedBox(height: 4),
                         Row(
                           children: [
                             Expanded(
                               child: Text(
                                 user?["program_studi"]?["nama_prodi"] ??
-                                    "Program Studi",
+                                    "Teknik Informatika",
                                 overflow: TextOverflow.ellipsis,
+                                style: const TextStyle(
+                                  fontSize: 12,
+                                  color: Colors.grey,
+                                ),
                               ),
                             ),
                             const SizedBox(width: 8),
-                            Text("Angkatan ${user?["angkatan"] ?? "0"}"),
+                            Text(
+                              "Angkatan ${user?["angkatan"] ?? "2020"}",
+                              style: const TextStyle(
+                                fontSize: 12,
+                                color: Colors.grey,
+                              ),
+                            ),
                           ],
                         ),
                       ],
@@ -281,33 +336,45 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  // MENU ITEM
+  // ====== MENU ITEM KOTAK HITAM ======
   Widget _menuItem(String assetPath, String label, {VoidCallback? onTap}) {
     return InkWell(
       onTap: onTap,
-      borderRadius: BorderRadius.circular(12),
-
+      borderRadius: BorderRadius.circular(22),
       child: Column(
+        mainAxisSize: MainAxisSize.min,
         children: [
           Container(
-            height: 70,
-            width: 70,
-            decoration: const BoxDecoration(
+            height: 78,
+            width: 78,
+            decoration: BoxDecoration(
               color: Colors.black,
-              shape: BoxShape.circle,
+              borderRadius: BorderRadius.circular(22),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.18),
+                  blurRadius: 8,
+                  offset: const Offset(0, 5),
+                ),
+              ],
             ),
-            child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: Image.asset(assetPath, color: Colors.white),
+            child: Center(
+              child: Image.asset(
+                assetPath,
+                color: Colors.white,
+                width: 34,
+                height: 34,
+              ),
             ),
           ),
-
-          const SizedBox(height: 8),
-
+          const SizedBox(height: 6),
           Text(
             label,
             textAlign: TextAlign.center,
-            style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500),
+            style: const TextStyle(
+              fontSize: 12,
+              color: Colors.black87,
+            ),
           ),
         ],
       ),
