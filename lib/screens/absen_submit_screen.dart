@@ -41,6 +41,11 @@ class _AbsenSubmitScreenState extends State<AbsenSubmitScreen> {
   bool _isCameraReady = false;
   Map<String, dynamic>? _existing;
 
+  // 🔒 Titik lokasi yang diizinkan & toleransi (meter) 
+  static const double _allowedLat = -7.439290555544139;   
+  static const double _allowedLon = 109.26619407574634;  
+  static const double _allowedRadius = 200.0;    
+
   @override
   void initState() {
     super.initState();
@@ -207,6 +212,55 @@ class _AbsenSubmitScreenState extends State<AbsenSubmitScreen> {
     }
   }
 
+  // ================== Validasi Geofence ==================
+  /// Mengembalikan true jika posisi dalam radius yang diizinkan.
+  Future<bool> _validateLocation() async {
+    final double distance = Geolocator.distanceBetween(
+      _position!.latitude,
+      _position!.longitude,
+      _allowedLat,
+      _allowedLon,
+    );
+
+    // Debug: lihat jarak aktual di console
+    debugPrint(
+      '🔍 Jarak dari titik absen: ${distance.toStringAsFixed(2)} m '
+      '(batas: ${_allowedRadius.toStringAsFixed(0)} m)',
+    );
+
+    if (distance <= _allowedRadius) return true;
+
+    // Tampilkan dialog peringatan
+    if (mounted) {
+      await showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (_) => AlertDialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          title: const Row(
+            children: [
+              Icon(Icons.location_off, color: Colors.red),
+              SizedBox(width: 8),
+              Text('Diluar Area Absen'),
+            ],
+          ),
+          content: Text(
+            'Kamu berada ${distance.toStringAsFixed(0)} meter dari lokasi absensi.\n\n'
+            'Batas yang diizinkan adalah ${_allowedRadius.toStringAsFixed(0)} meter.\n\n'
+            'Pastikan kamu berada di lokasi yang benar dan ambil ulang lokasi.',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('OK', style: TextStyle(color: Colors.red)),
+            ),
+          ],
+        ),
+      );
+    }
+    return false;
+  }
+
   // ================== _submit ==================
   Future<void> _submit() async {
     if (_existing != null) {
@@ -232,6 +286,10 @@ class _AbsenSubmitScreenState extends State<AbsenSubmitScreen> {
       );
       return;
     }
+
+    // 🔒 Validasi geofence — hentikan jika di luar area
+    final bool locationValid = await _validateLocation();
+    if (!locationValid) return;
 
     setState(() => _isSubmitting = true);
 
