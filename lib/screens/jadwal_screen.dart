@@ -70,58 +70,18 @@ class _JadwalPageState extends State<JadwalPage> {
 
   Future<void> _loadDaftarKrs() async {
     try {
-      final prefs = await SharedPreferences.getInstance();
-      final token = prefs.getString('auth_token');
-      final email = prefs.getString('auth_email');
-
-      final dio = Dio();
-      if (token != null) dio.options.headers['Authorization'] = 'Bearer $token';
-      dio.options.headers['Content-type'] = 'application/json';
-      dio.options.validateStatus = (_) => true;
-
-      if (email == null) {
-        setState(() => _daftarKrs = []);
-        return;
-      }
-
-      final resp = await dio.post(
-        '${ApiService.baseUrl}mahasiswa/detail-mahasiswa',
-        data: {'email': email},
-      );
-      if (resp.statusCode != 200) {
-        setState(() => _daftarKrs = []);
-        return;
-      }
-      final nim = resp.data['data']?['nim']?.toString();
-      if (nim == null) {
-        setState(() => _daftarKrs = []);
-        return;
-      }
-
-      final response = await dio.get(
-        '${ApiService.baseUrl}krs/daftar-krs?id_mahasiswa=$nim',
-      );
-      if (response.statusCode == 200) {
-        final List<dynamic> list = response.data['data'] ?? [];
-
-        final savedId = prefs.getInt(_selectedKrsPrefKey);
-
-        int? selectedId;
-        if (list.isNotEmpty) {
-          if (savedId != null && list.any((k) => k['id'] == savedId)) {
-            selectedId = savedId;
-          } else {
-            selectedId = list.first['id'] as int?;
-          }
+      await Future.delayed(const Duration(milliseconds: 300));
+      final List<dynamic> list = [
+        {
+          "id": 1,
+          "semester": "5",
+          "tahun_ajaran": "2023/2024"
         }
-
-        setState(() {
-          _daftarKrs = list;
-          _selectedKrsId = selectedId;
-        });
-      } else {
-        setState(() => _daftarKrs = []);
-      }
+      ];
+      setState(() {
+        _daftarKrs = list;
+        _selectedKrsId = 1;
+      });
     } catch (e) {
       setState(() => _daftarKrs = []);
     }
@@ -129,64 +89,31 @@ class _JadwalPageState extends State<JadwalPage> {
 
   Future<void> _loadKrsDetailToFilter(int idKrs) async {
     try {
-      final prefs = await SharedPreferences.getInstance();
-      final token = prefs.getString('auth_token');
+      await Future.delayed(const Duration(milliseconds: 300));
 
-      final dio = Dio();
-      if (token != null) dio.options.headers['Authorization'] = 'Bearer $token';
-      dio.options.headers['Content-type'] = 'application/json';
-      dio.options.validateStatus = (_) => true;
-
-      final resp = await dio.get(
-        '${ApiService.baseUrl}krs/detail-krs?id_krs=$idKrs',
-      );
-      if (resp.statusCode != 200) {
-        setState(() {
-          _filterJadwalIds = {};
-          _filterNames = {};
-        });
-        return;
-      }
-
-      final List<dynamic> daftarMatkul = resp.data['data'] ?? [];
+      final List<dynamic> daftarMatkul = [
+        {
+          "id": 1,
+          "id_jadwal": 101,
+          "nama_matakuliah": "Pemrograman Mobile"
+        },
+        {
+          "id": 2,
+          "id_jadwal": 102,
+          "nama_matakuliah": "Statistik"
+        }
+      ];
       final ids = <int>{};
       final names = <String>{};
       final scheduleMap = <int, int>{};
 
       for (final m in daftarMatkul) {
-        // Extract KRS Detail ID (unique per student per course)
-        final krsDetailId = m['id'] is int ? m['id'] : int.tryParse(m['id'].toString());
+        final krsDetailId = m['id'] as int;
+        final scheduleId = m['id_jadwal'] as int;
 
-        // Extract Schedule ID (shared)
-        int? scheduleId;
-        try {
-          final candidates = [
-            'id_jadwal',
-            'jadwal_id',
-            'id_jadwal_krs',
-          ];
-          for (final k in candidates) {
-            if (m[k] != null) {
-              final jid = m[k] is int ? m[k] : int.tryParse(m[k].toString());
-              if (jid != null) {
-                scheduleId = jid;
-                ids.add(jid);
-                break;
-              }
-            }
-          }
-        } catch (_) {}
-
-        // Map Schedule ID -> KRS Detail ID
-        if (scheduleId != null && krsDetailId != null) {
-          scheduleMap[scheduleId] = krsDetailId;
-        }
-
-        final name = (m['nama_matakuliah'] ?? m['nama'] ?? '')
-            .toString()
-            .trim()
-            .toLowerCase();
-        if (name.isNotEmpty) names.add(name);
+        ids.add(scheduleId);
+        scheduleMap[scheduleId] = krsDetailId;
+        names.add(m['nama_matakuliah'].toString().toLowerCase());
       }
       setState(() {
         _filterJadwalIds = ids;
@@ -284,28 +211,34 @@ class _JadwalPageState extends State<JadwalPage> {
     });
 
     try {
-      final prefs = await SharedPreferences.getInstance();
-      final token = prefs.getString('auth_token');
-
-      final dio = Dio();
-      if (token != null) dio.options.headers['Authorization'] = 'Bearer $token';
-      dio.options.headers['Content-type'] = 'application/json';
-      dio.options.validateStatus = (_) => true;
-
-      final url = "${ApiService.baseUrl}jadwal/daftar-jadwal";
-      final response = await dio.get(url);
-
-      if (response.statusCode != 200) {
-        setState(() {
-          _error = 'Server error: ${response.statusCode}';
-          _loading = false;
-          _events = {};
-        });
-        return;
-      }
-
-      final List<dynamic> jadwals =
-          response.data['jadwals'] ?? response.data['data'] ?? [];
+      await Future.delayed(const Duration(milliseconds: 300));
+      
+      final List<dynamic> jadwals = [
+        {
+          "id": 101,
+          "hari": "Senin",
+          "kode": "A11.1234",
+          "nama_matakuliah": "Pemrograman Mobile",
+          "dosen": "Dr. Dosen Dummy",
+          "nama_ruang": "H.4.5",
+          "jam_mulai": "08:00",
+          "jam_selesai": "10:30",
+          "materi": "Materi_Mobile.pdf",
+          "link_zoom": "https://zoom.us/j/12345"
+        },
+        {
+          "id": 102,
+          "hari": "Kamis",
+          "kode": "A11.5678",
+          "nama_matakuliah": "Statistik",
+          "dosen": "Prof. Data Dummy",
+          "nama_ruang": "H.4.6",
+          "jam_mulai": "10:00",
+          "jam_selesai": "12:00",
+          "materi": "Statistik.pdf",
+          "link_zoom": ""
+        }
+      ];
 
       final Set<int> existingJadwalIds = _filterJadwalIds;
       final Set<String> existingNames = _filterNames;

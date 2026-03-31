@@ -1,6 +1,6 @@
 import 'dart:typed_data';
 
-import 'package:dio/dio.dart';
+import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
@@ -8,7 +8,6 @@ import 'package:geolocator/geolocator.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:intl/intl.dart';
-import '../api/api_service.dart';
 
 // Web-specific imports
 import 'webcam_helper.dart' if (dart.library.io) 'webcam_helper_stub.dart';
@@ -91,20 +90,23 @@ class _AbsenSubmitScreenState extends State<AbsenSubmitScreen> {
   Future<void> _fetchExisting() async {
     try {
       final prefs = await SharedPreferences.getInstance();
-      final token = prefs.getString('auth_token');
-      final dio = Dio();
-      if (token != null) dio.options.headers['Authorization'] = 'Bearer $token';
-      dio.options.validateStatus = (_) => true;
-
-      final url =
-          "${ApiService.baseUrl}absensi/detail?id_krs_detail=${widget.idKrsDetail}&pertemuan=${widget.pertemuan}";
-      final res = await dio.get(url);
-      if (res.statusCode == 200 &&
-          res.data != null &&
-          res.data['data'] != null) {
-        _existing = Map<String, dynamic>.from(res.data['data']);
+      final dataStr = prefs.getString('absen_${widget.idKrsDetail}_${widget.pertemuan}');
+      if (dataStr != null) {
+        _existing = Map<String, dynamic>.from(jsonDecode(dataStr));
       } else {
-        _existing = null;
+        // DUMMY DATA: Jika pertemuan 1 sampai 3, set dummy existing data
+        if (widget.pertemuan <= 3) {
+          _existing = {
+            "id_krs_detail": widget.idKrsDetail,
+            "pertemuan": widget.pertemuan,
+            "latitude": -6.914744,
+            "longitude": 107.609810,
+            "waktu": DateFormat("yyyy-MM-dd HH:mm:ss").format(DateTime.now().subtract(Duration(days: (4 - widget.pertemuan) * 7))),
+            "foto": "https://i.pravatar.cc/150?img=3",
+          };
+        } else {
+          _existing = null;
+        }
       }
     } catch (e) {
       _existing = null;
@@ -235,65 +237,33 @@ class _AbsenSubmitScreenState extends State<AbsenSubmitScreen> {
 
     try {
       final prefs = await SharedPreferences.getInstance();
-      final token = prefs.getString('auth_token');
 
-      final dio = Dio();
-      if (token != null) dio.options.headers['Authorization'] = 'Bearer $token';
-      dio.options.validateStatus = (_) => true;
-
-      final file = MultipartFile.fromBytes(
-        _photoBytes!,
-        filename: "absen_${DateTime.now().millisecondsSinceEpoch}.png",
-      );
-
-      final form = FormData.fromMap({
+      final dataToSave = {
         "id_krs_detail": widget.idKrsDetail,
         "pertemuan": widget.pertemuan,
         "latitude": _position!.latitude,
         "longitude": _position!.longitude,
-        "foto": file,
-      });
+        "waktu": DateFormat("yyyy-MM-dd HH:mm:ss").format(DateTime.now()),
+        "foto": base64Encode(_photoBytes!), // Simpan foto asli sebagai base64 string
+      };
 
-      final res = await dio.post(
-        "${ApiService.baseUrl}absensi/submit",
-        data: form,
-      );
+      await prefs.setString('absen_${widget.idKrsDetail}_${widget.pertemuan}', jsonEncode(dataToSave));
 
-      print("🔵 STATUS CODE: ${res.statusCode}");
-      print("🔵 DATA: ${res.data}");
-
-      final statusCode = res.statusCode ?? 0;
-      final data = res.data;
-
-      final isSuccess =
-          (statusCode >= 200 && statusCode < 300) ||
-          data?['status'] == true ||
-          data?['status'] == 1 ||
-          data?['status'] == 'success' ||
-          data?['status'] == 200;
-
-      if (isSuccess) {
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content:
-                  Text(data?['message'] ?? '✅ Absensi berhasil disubmit'),
-              backgroundColor: Colors.green,
-              duration: const Duration(seconds: 2),
-            ),
-          );
-        }
-
-        await Future.delayed(const Duration(milliseconds: 500));
-
-        if (mounted) {
-          Navigator.pop(context, true);
-        }
-        return;
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('✅ Absensi berhasil disubmit secara lokal'),
+            backgroundColor: Colors.green,
+            duration: Duration(seconds: 2),
+          ),
+        );
       }
 
-      final msg = data?['message'] ?? 'Gagal submit';
-      throw Exception(msg);
+      await Future.delayed(const Duration(milliseconds: 500));
+
+      if (mounted) {
+        Navigator.pop(context, true);
+      }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -653,12 +623,19 @@ class _AbsenSubmitScreenState extends State<AbsenSubmitScreen> {
                   child: fotoUrl != null
                       ? ClipRRect(
                           borderRadius: BorderRadius.circular(12),
-                          child: Image.network(
-                            fotoUrl.toString(),
-                            fit: BoxFit.cover,
-                            errorBuilder: (_, __, ___) =>
-                                const Center(child: Icon(Icons.broken_image)),
-                          ),
+                          child: fotoUrl.toString().startsWith('http')
+                              ? Image.network(
+                                  fotoUrl.toString(),
+                                  fit: BoxFit.cover,
+                                  errorBuilder: (_, __, ___) =>
+                                      const Center(child: Icon(Icons.broken_image)),
+                                )
+                              : Image.memory(
+                                  base64Decode(fotoUrl.toString()),
+                                  fit: BoxFit.cover,
+                                  errorBuilder: (_, __, ___) =>
+                                      const Center(child: Icon(Icons.broken_image)),
+                                ),
                         )
                       : const Center(
                           child: Icon(Icons.image, size: 48, color: Colors.grey),

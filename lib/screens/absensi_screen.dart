@@ -1,11 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:dio/dio.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:intl/intl.dart';
-import '../api/api_service.dart';
 import 'absen_submit_screen.dart';
-import 'package:flutter/foundation.dart';
-import 'package:flutter/material.dart';
 
 class AbsenPage extends StatefulWidget {
   final int idKrsDetail;
@@ -39,62 +35,30 @@ class _AbsenPageState extends State<AbsenPage> {
   }
 
   Future<void> _loadUser() async {
-    try {
-      final prefs = await SharedPreferences.getInstance();
-      final token = prefs.getString('auth_token');
-      final email = prefs.getString('auth_email');
-
-      if (email == null) return;
-
-      Dio dio = Dio();
-      if (token != null) dio.options.headers['Authorization'] = 'Bearer $token';
-      dio.options.headers['Content-type'] = 'application/json';
-      dio.options.validateStatus = (_) => true;
-
-      final resp = await dio.post(
-        "${ApiService.baseUrl}mahasiswa/detail-mahasiswa",
-        data: {"email": email},
-      );
-
-      if (resp.statusCode == 200 &&
-          resp.data != null &&
-          resp.data['data'] != null) {
-        setState(
-          () => user = (resp.data['data'] is Map)
-              ? Map<String, dynamic>.from(resp.data['data'])
-              : null,
-        );
-      }
-    } catch (e) {
-      // ignore, optional user photo
-    }
+    // Dummy user data without API
+    setState(() {
+      user = {
+        'foto': 'https://i.pravatar.cc/150?img=3',
+      };
+    });
   }
 
   Future<void> loadStatusAbsen() async {
     setState(() => isLoading = true);
     try {
       final prefs = await SharedPreferences.getInstance();
-      final token = prefs.getString('auth_token');
-
-      final dio = Dio();
-      if (token != null) dio.options.headers['Authorization'] = 'Bearer $token';
-      dio.options.headers['Content-type'] = 'application/json';
-      dio.options.validateStatus = (_) => true;
 
       for (int i = 1; i <= 16; i++) {
-        try {
-          final url =
-              "${ApiService.baseUrl}absensi/detail?id_krs_detail=${widget.idKrsDetail}&pertemuan=$i";
-          final res = await dio.get(url);
-          if (res.statusCode == 200 &&
-              res.data != null &&
-              res.data['data'] != null) {
+        final data = prefs.getString('absen_${widget.idKrsDetail}_$i');
+        if (data != null) {
+          sudahAbsen[i - 1] = true;
+        } else {
+          // DUMMY DATA: Anggap pertemuan 1 sampai 3 sudah absen
+          if (i <= 3) {
             sudahAbsen[i - 1] = true;
           } else {
             sudahAbsen[i - 1] = false;
           }
-        } catch (_) {
-          sudahAbsen[i - 1] = false;
         }
       }
     } catch (e) {
@@ -125,6 +89,7 @@ class _AbsenPageState extends State<AbsenPage> {
 
     if (result == true) {
       setState(() => sudahAbsen[pertemuan - 1] = true);
+      // Reload stats if needed, or just keep already set state true.
     }
   }
 
@@ -292,7 +257,7 @@ class _AbsenPageState extends State<AbsenPage> {
                           style: const TextStyle(color: Colors.black54),
                         ),
                       ],
-                    ),
+                    ),  
                   ),
                   CircleAvatar(radius: 28, backgroundImage: avatar),
                 ],

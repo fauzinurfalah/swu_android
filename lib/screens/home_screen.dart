@@ -31,23 +31,18 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Future<void> _getMahasiswaData() async {
     try {
-      final prefs = await SharedPreferences.getInstance();
-      final token = prefs.getString("auth_token");
-      final email = prefs.getString("auth_email");
-
-      Dio dio = Dio();
-      if (token != null) {
-        dio.options.headers['Authorization'] = 'Bearer $token';
-      }
-      dio.options.headers['Content-type'] = 'application/json';
-
-      final response = await dio.post(
-        "${ApiService.baseUrl}mahasiswa/detail-mahasiswa",
-        data: {"email": email},
-      );
-
+      await Future.delayed(const Duration(milliseconds: 500));
       setState(() {
-        user = response.data["data"];
+        user = {
+          "nim": "A11.2021.12345",
+          "nama": "Mahasiswa Dummy",
+          "semester": 5,
+          "angkatan": "2021",
+          "foto": "https://i.pravatar.cc/150?img=3",
+          "program_studi": {
+            "nama_prodi": "Teknik Informatika"
+          }
+        };
       });
     } catch (e) {
       print("Error getMahasiswa: $e");
@@ -90,12 +85,16 @@ class _HomeScreenState extends State<HomeScreen> {
                   child: Container(
                     height: 110,
                     decoration: BoxDecoration(
-                      color: Colors.black,
+                      gradient: const LinearGradient(
+                        colors: [Color(0xFF7BA7E2), Color(0xFF5589CD)],
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                      ),
                       borderRadius: BorderRadius.circular(24),
                       boxShadow: [
                         BoxShadow(
-                          color: Colors.black.withOpacity(0.15),
-                          blurRadius: 10,
+                          color: const Color(0xFF7BA7E2).withOpacity(0.4),
+                          blurRadius: 12,
                           offset: const Offset(0, 6),
                         ),
                       ],
@@ -405,26 +404,28 @@ class _HomeScreenState extends State<HomeScreen> {
             height: 78,
             width: 78,
             decoration: BoxDecoration(
-              color: Colors.black,
+              color: Colors.white,
               borderRadius: BorderRadius.circular(22),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withOpacity(0.18),
-                  blurRadius: 8,
-                  offset: const Offset(0, 5),
+                  color: Colors.black.withOpacity(0.06),
+                  blurRadius: 12,
+                  offset: const Offset(0, 4),
                 ),
               ],
             ),
             child: Center(
-              child: Image.asset(
-                assetPath,
-                color: Colors.white,
-                width: 78,
-                height: 78,
+              child: Padding(
+                padding: const EdgeInsets.all(20.0),
+                child: Image.asset(
+                  assetPath,
+                  color: const Color(0xFF7BA7E2),
+                  fit: BoxFit.contain,
+                ),
               ),
             ),
           ),
-          const SizedBox(height: 6),
+          const SizedBox(height: 8),
           Text(
             label,
             textAlign: TextAlign.center,

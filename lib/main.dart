@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:project_mobileprog/api/api_service.dart';
-import 'package:project_mobileprog/screens/welcome_screen.dart';
+import 'package:project_mobileprog/screens/home_screen.dart';
 import 'screens/login_screen.dart';
 import 'package:intl/date_symbol_data_local.dart';
 
@@ -34,9 +34,9 @@ class MyApp extends StatelessWidget {
         future: ApiService.getSession(),
         builder: (context, snapshot) {
           if (!snapshot.hasData) {
-            return const WelcomeScreen();
+            return const HomeScreen();
           } else {
-            return const LoginScreen(); // nanti bisa diganti Dashboard
+            return const HomeScreen(); // nanti bisa diganti Dashboard
           }
         },
       ),

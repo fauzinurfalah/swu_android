@@ -49,10 +49,10 @@ class _BottomNavState extends State<BottomNav> {
     return BottomNavigationBar(
       type: BottomNavigationBarType.fixed,
       backgroundColor: Colors.white,
-      selectedItemColor: Colors.black,
-      unselectedItemColor: Colors.black87,
+      selectedItemColor: const Color(0xFF7BA7E2),
+      unselectedItemColor: Colors.grey.shade400,
       selectedLabelStyle: const TextStyle(fontWeight: FontWeight.bold),
-      unselectedLabelStyle: const TextStyle(color: Colors.white54),
+      elevation: 12,
 
       currentIndex: index,
       onTap: (i) => _onItemTapped(i, context),
