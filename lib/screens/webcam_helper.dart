@@ -124,4 +124,16 @@ class WebCamera {
   void dispose() {
     _stopStreamInternal();
   }
+
+  // Dummy face detection APIs untuk kompatibilitas dengan WebCamera di Android/iOS
+  bool get isFaceDetected => true; // Di web selalu dianggap true (karena ML Kit tidak disupport)
+
+  Future<void> startFaceDetection(Function(bool) onResult) async {
+    // Pada web, kirim hasil true (terdeteksi)
+    onResult(true);
+  }
+
+  Future<void> stopFaceDetection() async {
+    // Do nothing
+  }
 }

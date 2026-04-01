@@ -67,6 +67,15 @@ class _AbsenSubmitScreenState extends State<AbsenSubmitScreen> {
       if (mounted) {
         setState(() => _isCameraReady = true);
         debugPrint("✅ Camera initialized successfully");
+        
+        // Mulai deteksi wajah khusus di luar web
+        if (!kIsWeb) {
+          cam.startFaceDetection((bool faceDetected) {
+            if (mounted) {
+              setState(() {});
+            }
+          });
+        }
       }
     } catch (e) {
       debugPrint("❌ Error init camera: $e");
@@ -139,9 +148,14 @@ class _AbsenSubmitScreenState extends State<AbsenSubmitScreen> {
     }
   }
 
-  // Foto ulang = ambil foto baru lagi dari kamera
-  Future<void> _retakePicture() async {
-    await _takePicture();
+  // Foto ulang = kembali ke mode preview kamera dan buang foto
+  void _retakePicture() {
+    setState(() => _photoBytes = null);
+    if (!kIsWeb && _isCameraReady) {
+      cam.startFaceDetection((bool faceDetected) {
+        if (mounted) setState(() {});
+      });
+    }
   }
 
   /// 🔹 Versi _getLocation disederhanakan seperti contoh AbsenSubmitPage
@@ -286,32 +300,18 @@ class _AbsenSubmitScreenState extends State<AbsenSubmitScreen> {
         viewType: WebCamera.viewType,
       );
     } else {
-      // Android: gunakan CameraPreview dari package camera
+  
       if (_isCameraReady && cam.controller != null) {
         final size = MediaQuery.of(context).size;
-        // Calculate scale to cover the 1:1 aspect ratio
-        // Camera preview aspect ratio is usually 4:3 or 16:9
-        // We want to fill a 1:1 box.
-        // Since we are inside an AspectRatio(1), the parent width == height.
-        // The CameraPreview tries to fit inside.
-        // To cover, we need to scale it up.
+        
         
         var scale = 1.0;
         try {
             final previewSize = cam.controller!.value.previewSize!;
-            // previewSize is usually landscape (e.g. 640x480).
-            // But on mobile portrait, the preview is rotated.
-            // Aspect ratio of the widget is previewSize.height / previewSize.width (if portrait)
-            // Actually CameraPreview handles rotation.
-            // Let's rely on the aspect ratio of the controller.
+           
             final aspectRatio = cam.controller!.value.aspectRatio;
             
-            // If aspect ratio is not 1, we need to scale.
-            // If portrait, aspectRatio < 1 (e.g. 3/4 = 0.75).
-            // To fill a square (1.0), we need to scale by 1/aspectRatio (1/0.75 = 1.33)
-            // If landscape, aspectRatio > 1 (e.g. 4/3 = 1.33).
-            // To fill a square, we need to scale by aspectRatio (1.33).
-            
+  
             scale = 1 / aspectRatio;
             if (scale < 1) scale = 1 / scale; 
         } catch (e) {
@@ -393,16 +393,47 @@ class _AbsenSubmitScreenState extends State<AbsenSubmitScreen> {
                     color: Colors.grey.shade200,
                     borderRadius: BorderRadius.circular(12),
                   ),
-                  child: ClipRRect(
-                    borderRadius: BorderRadius.circular(12),
-                    child: _buildCameraPreview(),
+                  child: Stack(
+                    fit: StackFit.expand,
+                    children: [
+                      ClipRRect(
+                        borderRadius: BorderRadius.circular(12),
+                        child: _buildCameraPreview(),
+                      ),
+                      if (!kIsWeb && _isCameraReady && _photoBytes == null)
+                        Positioned(
+                          bottom: 16,
+                          left: 16,
+                          right: 16,
+                          child: AnimatedContainer(
+                            duration: const Duration(milliseconds: 300),
+                            padding: const EdgeInsets.symmetric(vertical: 8),
+                            decoration: BoxDecoration(
+                              color: cam.isFaceDetected
+                                  ? Colors.green.withOpacity(0.85)
+                                  : Colors.red.withOpacity(0.85),
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: Text(
+                              cam.isFaceDetected
+                                  ? 'Wajah Terdeteksi'
+                                  : 'Arahkan wajah Anda ke kamera',
+                              textAlign: TextAlign.center,
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontWeight: FontWeight.bold,
+                                fontSize: 13,
+                              ),
+                            ),
+                          ),
+                        ),
+                    ],
                   ),
                 ),
               ),
 
               const SizedBox(height: 12),
 
-              // Preview foto yang sudah diambil (kalau ada)
               if (_photoBytes != null) ...[
                 const Text(
                   'Foto Terakhir:',
@@ -436,7 +467,9 @@ class _AbsenSubmitScreenState extends State<AbsenSubmitScreen> {
               Center(
                 child: OutlinedButton(
                   onPressed: (_isCameraReady || !kIsWeb)
-                      ? (_photoBytes == null ? _takePicture : _retakePicture)
+                      ? (!kIsWeb && !cam.isFaceDetected && _photoBytes == null
+                          ? null 
+                          : (_photoBytes == null ? _takePicture : _retakePicture))
                       : null,
                   style: OutlinedButton.styleFrom(
                     padding: const EdgeInsets.symmetric(
