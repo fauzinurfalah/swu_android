@@ -10,8 +10,8 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:intl/intl.dart';
 
 // Web-specific imports
-import 'webcam_helper.dart' if (dart.library.io) 'webcam_helper_stub.dart';
-import 'package:camera/camera.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:google_mlkit_face_detection/google_mlkit_face_detection.dart';
 
 class AbsenSubmitScreen extends StatefulWidget {
   final int idKrsDetail;
@@ -30,7 +30,16 @@ class AbsenSubmitScreen extends StatefulWidget {
 }
 
 class _AbsenSubmitScreenState extends State<AbsenSubmitScreen> {
-  final WebCamera cam = WebCamera();
+  final ImagePicker _picker = ImagePicker();
+  
+  // Instance FaceDetector dari ML Kit
+  final FaceDetector _faceDetector = FaceDetector(
+    options: FaceDetectorOptions(
+      enableContours: false,
+      enableClassification: false,
+      performanceMode: FaceDetectorMode.fast,
+    ),
+  );
 
   Uint8List? _photoBytes;
   Position? _position;
@@ -38,7 +47,6 @@ class _AbsenSubmitScreenState extends State<AbsenSubmitScreen> {
 
   bool _isSubmitting = false;
   bool _loading = true;
-  bool _isCameraReady = false;
   Map<String, dynamic>? _existing;
 
   // 🔒 Titik lokasi yang diizinkan & toleransi (meter) 
@@ -54,50 +62,12 @@ class _AbsenSubmitScreenState extends State<AbsenSubmitScreen> {
 
   Future<void> _init() async {
     await _fetchExisting();
-
-    if (_existing == null) {
-      // Initialize camera on both web and Android if not submitted
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        _initializeCameraAfterRender();
-      });
-    }
-
     if (mounted) setState(() => _loading = false);
-  }
-
-  Future<void> _initializeCameraAfterRender() async {
-    try {
-      await Future.delayed(const Duration(milliseconds: 500));
-      await cam.initialize();
-      if (mounted) {
-        setState(() => _isCameraReady = true);
-        debugPrint("✅ Camera initialized successfully");
-        
-        // Mulai deteksi wajah khusus di luar web
-        if (!kIsWeb) {
-          cam.startFaceDetection((bool faceDetected) {
-            if (mounted) {
-              setState(() {});
-            }
-          });
-        }
-      }
-    } catch (e) {
-      debugPrint("❌ Error init camera: $e");
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text("Gagal akses kamera: $e"),
-            backgroundColor: Colors.red,
-          ),
-        );
-      }
-    }
   }
 
   @override
   void dispose() {
-    cam.dispose(); // matikan stream kamera saat keluar screen (web & Android)
+    _faceDetector.close();
     super.dispose();
   }
 
@@ -129,13 +99,39 @@ class _AbsenSubmitScreenState extends State<AbsenSubmitScreen> {
 
   Future<void> _takePicture() async {
     try {
-      final data = await cam.capture();
-      setState(() => _photoBytes = data);
+      final XFile? image = await _picker.pickImage(
+        source: ImageSource.camera,
+        preferredCameraDevice: CameraDevice.front,
+      );
+
+      if (image == null) return; // User cancelled
+
+      // Jika bukan web, lakukan deteksi wajah dengan ML Kit
+      if (!kIsWeb) {
+        final inputImage = InputImage.fromFilePath(image.path);
+        final faces = await _faceDetector.processImage(inputImage);
+        
+        if (faces.isEmpty) {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('❌ Wajah tidak terdeteksi. Silakan coba lagi.'),
+                backgroundColor: Colors.red,
+                duration: Duration(seconds: 3),
+              ),
+            );
+          }
+          return; // Wajah tidak valid, tolak foto
+        }
+      }
+
+      final bytes = await image.readAsBytes();
+      setState(() => _photoBytes = bytes);
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('Foto berhasil diambil'),
+            content: Text('✅ Wajah terdeteksi dan foto berhasil diambil'),
             backgroundColor: Colors.green,
             duration: Duration(seconds: 2),
           ),
@@ -153,14 +149,9 @@ class _AbsenSubmitScreenState extends State<AbsenSubmitScreen> {
     }
   }
 
-  // Foto ulang = kembali ke mode preview kamera dan buang foto
+  // Foto ulang = buang foto
   void _retakePicture() {
     setState(() => _photoBytes = null);
-    if (!kIsWeb && _isCameraReady) {
-      cam.startFaceDetection((bool faceDetected) {
-        if (mounted) setState(() {});
-      });
-    }
   }
 
   /// 🔹 Versi _getLocation disederhanakan seperti contoh AbsenSubmitPage
@@ -351,49 +342,21 @@ class _AbsenSubmitScreenState extends State<AbsenSubmitScreen> {
   }
   // =============================================================
 
-  Widget _buildCameraPreview() {
-    if (kIsWeb) {
-      // Web: gunakan HtmlElementView
-      return const HtmlElementView(
-        viewType: WebCamera.viewType,
-      );
-    } else {
-  
-      if (_isCameraReady && cam.controller != null) {
-        final size = MediaQuery.of(context).size;
-        
-        
-        var scale = 1.0;
-        try {
-            final previewSize = cam.controller!.value.previewSize!;
-           
-            final aspectRatio = cam.controller!.value.aspectRatio;
-            
-  
-            scale = 1 / aspectRatio;
-            if (scale < 1) scale = 1 / scale; 
-        } catch (e) {
-            scale = 1.0;
-        }
-
-        return Transform.scale(
-          scale: scale,
-          alignment: Alignment.center,
-          child: CameraPreview(cam.controller!),
-        );
-      } else {
-        return Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: const [
-              CircularProgressIndicator(),
-              SizedBox(height: 8),
-              Text('Memuat kamera...'),
-            ],
-          ),
-        );
-      }
-    }
+  Widget _buildCameraPlaceholder() {
+    return Container(
+      color: Colors.grey.shade200,
+      width: double.infinity,
+      child: const Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.camera_alt, size: 48, color: Colors.grey),
+            SizedBox(height: 8),
+            Text('Ketuk "Ambil Foto" di bawah', style: TextStyle(color: Colors.grey)),
+          ],
+        ),
+      ),
+    );
   }
 
   Widget _buildNotSubmittedView() {
@@ -456,35 +419,10 @@ class _AbsenSubmitScreenState extends State<AbsenSubmitScreen> {
                     children: [
                       ClipRRect(
                         borderRadius: BorderRadius.circular(12),
-                        child: _buildCameraPreview(),
+                        child: _photoBytes != null 
+                            ? Image.memory(_photoBytes!, fit: BoxFit.cover)
+                            : _buildCameraPlaceholder(),
                       ),
-                      if (!kIsWeb && _isCameraReady && _photoBytes == null)
-                        Positioned(
-                          bottom: 16,
-                          left: 16,
-                          right: 16,
-                          child: AnimatedContainer(
-                            duration: const Duration(milliseconds: 300),
-                            padding: const EdgeInsets.symmetric(vertical: 8),
-                            decoration: BoxDecoration(
-                              color: cam.isFaceDetected
-                                  ? Colors.green.withOpacity(0.85)
-                                  : Colors.red.withOpacity(0.85),
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                            child: Text(
-                              cam.isFaceDetected
-                                  ? 'Wajah Terdeteksi'
-                                  : 'Arahkan wajah Anda ke kamera',
-                              textAlign: TextAlign.center,
-                              style: const TextStyle(
-                                color: Colors.white,
-                                fontWeight: FontWeight.bold,
-                                fontSize: 13,
-                              ),
-                            ),
-                          ),
-                        ),
                     ],
                   ),
                 ),
@@ -492,43 +430,9 @@ class _AbsenSubmitScreenState extends State<AbsenSubmitScreen> {
 
               const SizedBox(height: 12),
 
-              if (_photoBytes != null) ...[
-                const Text(
-                  'Foto Terakhir:',
-                  style: TextStyle(
-                    fontSize: 13,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                const SizedBox(height: 6),
-                Container(
-                  width: double.infinity,
-                  decoration: BoxDecoration(
-                    color: Colors.grey.shade200,
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: AspectRatio(
-                    aspectRatio: 1,
-                    child: ClipRRect(
-                      borderRadius: BorderRadius.circular(12),
-                      child: Image.memory(
-                        _photoBytes!,
-                        fit: BoxFit.cover,
-                      ),
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 12),
-              ],
-
-              // Ambil Foto / Foto Ulang Button
               Center(
                 child: OutlinedButton(
-                  onPressed: (_isCameraReady || !kIsWeb)
-                      ? (!kIsWeb && !cam.isFaceDetected && _photoBytes == null
-                          ? null 
-                          : (_photoBytes == null ? _takePicture : _retakePicture))
-                      : null,
+                  onPressed: _photoBytes == null ? _takePicture : _retakePicture,
                   style: OutlinedButton.styleFrom(
                     padding: const EdgeInsets.symmetric(
                       horizontal: 32,

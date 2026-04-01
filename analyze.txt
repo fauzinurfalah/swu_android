@@ -1,0 +1,14 @@
+Analyzing absen_submit_screen.dart...                           
+
+   info - The import of 'dart:typed_data' is unnecessary because all of the used elements are also provided by the import of 'package:flutter/foundation.dart' - lib\screens\absen_submit_screen.dart:1:8 - unnecessary_import
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\screens\absen_submit_screen.dart:374:37 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\screens\absen_submit_screen.dart:463:37 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\screens\absen_submit_screen.dart:575:37 - deprecated_member_use
+   info - Unnecessary use of multiple underscores - lib\screens\absen_submit_screen.dart:625:53 - unnecessary_underscores
+   info - Unnecessary use of multiple underscores - lib\screens\absen_submit_screen.dart:625:57 - unnecessary_underscores
+   info - Unnecessary use of multiple underscores - lib\screens\absen_submit_screen.dart:631:53 - unnecessary_underscores
+   info - Unnecessary use of multiple underscores - lib\screens\absen_submit_screen.dart:631:57 - unnecessary_underscores
+   info - Unnecessary use of multiple underscores - lib\screens\absen_submit_screen.dart:773:35 - unnecessary_underscores
+   info - Unnecessary use of multiple underscores - lib\screens\absen_submit_screen.dart:773:39 - unnecessary_underscores
+
+10 issues found. (ran in 5.5s)
