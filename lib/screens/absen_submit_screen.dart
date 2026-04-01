@@ -197,7 +197,7 @@ class _AbsenSubmitScreenState extends State<AbsenSubmitScreen> {
         return;
       }
 
-      // 🔥 Versi simpel seperti di kode contoh
+      
       final pos = await Geolocator.getCurrentPosition();
 
       setState(() {
