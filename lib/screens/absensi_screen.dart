@@ -89,7 +89,6 @@ class _AbsenPageState extends State<AbsenPage> {
 
     if (result == true) {
       setState(() => sudahAbsen[pertemuan - 1] = true);
-      // Reload stats if needed, or just keep already set state true.
     }
   }
 
@@ -176,7 +175,7 @@ class _AbsenPageState extends State<AbsenPage> {
         ? NetworkImage(fotoUrl) as ImageProvider
         : const AssetImage('assets/images/default_user.png');
 
-    // logo kampus gaya seperti krs_detail_page
+    // logo kampus 
     final logoWidget = Container(
       height: 40,
       width: 40,
@@ -198,7 +197,7 @@ class _AbsenPageState extends State<AbsenPage> {
       body: SafeArea(
         child: Column(
           children: [
-            // top header (back + small logo)
+            // top header 
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
               color: const Color(0xFF7BA7E2),
@@ -227,7 +226,6 @@ class _AbsenPageState extends State<AbsenPage> {
               ),
             ),
 
-            // white header area with title + date + user photo (foto user ditampilkan di header putih)
             Container(
               width: double.infinity,
               padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
@@ -264,7 +262,6 @@ class _AbsenPageState extends State<AbsenPage> {
               ),
             ),
 
-            // list area (keeps white background continuous)
             Expanded(
               child: Container(
                 color: Colors.white,

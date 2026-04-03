@@ -9,9 +9,10 @@ import 'package:latlong2/latlong.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:intl/intl.dart';
 
-// Web-specific imports
 import 'package:image_picker/image_picker.dart';
 import 'package:google_mlkit_face_detection/google_mlkit_face_detection.dart';
+import 'package:camera/camera.dart';
+import 'package:flutter/services.dart';
 
 class AbsenSubmitScreen extends StatefulWidget {
   final int idKrsDetail;
@@ -32,7 +33,6 @@ class AbsenSubmitScreen extends StatefulWidget {
 class _AbsenSubmitScreenState extends State<AbsenSubmitScreen> {
   final ImagePicker _picker = ImagePicker();
   
-  // Instance FaceDetector dari ML Kit
   final FaceDetector _faceDetector = FaceDetector(
     options: FaceDetectorOptions(
       enableContours: false,
@@ -41,15 +41,20 @@ class _AbsenSubmitScreenState extends State<AbsenSubmitScreen> {
     ),
   );
 
+  CameraController? _cameraController;
+  List<CameraDescription>? _cameras;
+  bool _isCameraInitialized = false;
+  bool _isDetecting = false;
+  bool _faceDetected = false;
+
   Uint8List? _photoBytes;
   Position? _position;
-  DateTime? _locationTime; // waktu saat lokasi diambil
+  DateTime? _locationTime;
 
   bool _isSubmitting = false;
   bool _loading = true;
   Map<String, dynamic>? _existing;
 
-  // 🔒 Titik lokasi yang diizinkan & toleransi (meter) 
   static const double _allowedLat = -7.439290555544139;   
   static const double _allowedLon = 109.26619407574634;  
   static const double _allowedRadius = 200.0;    
@@ -62,11 +67,17 @@ class _AbsenSubmitScreenState extends State<AbsenSubmitScreen> {
 
   Future<void> _init() async {
     await _fetchExisting();
-    if (mounted) setState(() => _loading = false);
+    if (mounted) {
+      setState(() => _loading = false);
+      if (_existing == null && !kIsWeb) {
+        _initializeCamera();
+      }
+    }
   }
 
   @override
   void dispose() {
+    _cameraController?.dispose();
     _faceDetector.close();
     super.dispose();
   }
@@ -78,7 +89,7 @@ class _AbsenSubmitScreenState extends State<AbsenSubmitScreen> {
       if (dataStr != null) {
         _existing = Map<String, dynamic>.from(jsonDecode(dataStr));
       } else {
-        // DUMMY DATA: Jika pertemuan 1 sampai 3, set dummy existing data
+
         if (widget.pertemuan <= 3) {
           _existing = {
             "id_krs_detail": widget.idKrsDetail,
@@ -97,67 +108,169 @@ class _AbsenSubmitScreenState extends State<AbsenSubmitScreen> {
     }
   }
 
-  Future<void> _takePicture() async {
+  Future<void> _takePictureManual() async {
     try {
       final XFile? image = await _picker.pickImage(
         source: ImageSource.camera,
         preferredCameraDevice: CameraDevice.front,
       );
 
-      if (image == null) return; // User cancelled
-
-      // Jika bukan web, lakukan deteksi wajah dengan ML Kit
-      if (!kIsWeb) {
-        final inputImage = InputImage.fromFilePath(image.path);
-        final faces = await _faceDetector.processImage(inputImage);
-        
-        if (faces.isEmpty) {
-          if (mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                content: Text('❌ Wajah tidak terdeteksi. Silakan coba lagi.'),
-                backgroundColor: Colors.red,
-                duration: Duration(seconds: 3),
-              ),
-            );
-          }
-          return; // Wajah tidak valid, tolak foto
-        }
-      }
+      if (image == null) return;
 
       final bytes = await image.readAsBytes();
       setState(() => _photoBytes = bytes);
-
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('✅ Wajah terdeteksi dan foto berhasil diambil'),
-            backgroundColor: Colors.green,
-            duration: Duration(seconds: 2),
-          ),
-        );
-      }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Gagal mengambil foto: $e'),
-            backgroundColor: Colors.red,
-          ),
+          SnackBar(content: Text('Gagal mengambil foto: $e'), backgroundColor: Colors.red),
         );
       }
     }
   }
 
-  // Foto ulang = buang foto
-  void _retakePicture() {
-    setState(() => _photoBytes = null);
+  Future<void> _initializeCamera() async {
+    try {
+      _cameras = await availableCameras();
+      if (_cameras == null || _cameras!.isEmpty) return;
+
+      CameraDescription? frontCamera;
+      for (var camera in _cameras!) {
+        if (camera.lensDirection == CameraLensDirection.front) {
+          frontCamera = camera;
+          break;
+        }
+      }
+      frontCamera ??= _cameras!.first;
+
+      _cameraController = CameraController(
+        frontCamera,
+        kDebugMode ? ResolutionPreset.low : ResolutionPreset.medium,
+        enableAudio: false,
+        imageFormatGroup: defaultTargetPlatform == TargetPlatform.android 
+            ? ImageFormatGroup.nv21 
+            : ImageFormatGroup.bgra8888,
+      );
+
+      await _cameraController!.initialize();
+      if (!mounted) return;
+      
+      setState(() {
+        _isCameraInitialized = true;
+      });
+
+      _startFaceDetection();
+    } catch (e) {
+      debugPrint("Camera Error: $e");
+    }
   }
 
-  /// 🔹 Versi _getLocation disederhanakan seperti contoh AbsenSubmitPage
+  int _lastDetectTime = 0;
+
+  void _startFaceDetection() {
+    if (_cameraController == null || !_cameraController!.value.isInitialized) return;
+    _faceDetected = false;
+
+    _cameraController!.startImageStream((CameraImage image) async {
+      if (_isDetecting || _faceDetected) return;
+
+      final currentTime = DateTime.now().millisecondsSinceEpoch;
+      if (currentTime - _lastDetectTime < 500) return;
+      _lastDetectTime = currentTime;
+
+      _isDetecting = true;
+
+      try {
+        final inputImage = _inputImageFromCameraImage(image);
+        if (inputImage != null) {
+          final faces = await _faceDetector.processImage(inputImage);
+          if (faces.isNotEmpty) {
+            _faceDetected = true;
+            await _cameraController!.stopImageStream();
+            
+            final XFile picture = await _cameraController!.takePicture();
+            final bytes = await picture.readAsBytes();
+            
+            if (mounted) {
+              setState(() {
+                _photoBytes = bytes;
+              });
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text('✅ Wajah terdeteksi dan foto diambil otomatis'),
+                  backgroundColor: Colors.green,
+                  duration: Duration(seconds: 2),
+                ),
+              );
+            }
+          }
+        }
+      } catch (e) {
+        debugPrint("Error face detection: $e");
+      } finally {
+        _isDetecting = false;
+      }
+    });
+  }
+
+  static const _orientations = {
+    DeviceOrientation.portraitUp: 0,
+    DeviceOrientation.landscapeLeft: 90,
+    DeviceOrientation.portraitDown: 180,
+    DeviceOrientation.landscapeRight: 270,
+  };
+
+  InputImage? _inputImageFromCameraImage(CameraImage image) {
+    if (_cameraController == null) return null;
+    final camera = _cameraController!.description;
+    final sensorOrientation = camera.sensorOrientation;
+    
+    InputImageRotation? rotation;
+    if (defaultTargetPlatform == TargetPlatform.iOS) {
+      rotation = InputImageRotationValue.fromRawValue(sensorOrientation);
+    } else if (defaultTargetPlatform == TargetPlatform.android) {
+      var rotationCompensation = _orientations[_cameraController!.value.deviceOrientation] ?? 0;
+      if (camera.lensDirection == CameraLensDirection.front) {
+        rotationCompensation = (sensorOrientation + rotationCompensation) % 360;
+      } else {
+        rotationCompensation = (sensorOrientation - rotationCompensation + 360) % 360;
+      }
+      rotation = InputImageRotationValue.fromRawValue(rotationCompensation);
+    }
+    if (rotation == null) return null;
+
+    final format = InputImageFormatValue.fromRawValue(image.format.raw);
+    if (format == null ||
+        (defaultTargetPlatform == TargetPlatform.android && format != InputImageFormat.nv21) ||
+        (defaultTargetPlatform == TargetPlatform.iOS && format != InputImageFormat.bgra8888)) return null;
+
+    if (image.planes.isEmpty) return null;
+
+    final bytes = WriteBuffer();
+    for (final plane in image.planes) {
+      bytes.putUint8List(plane.bytes);
+    }
+
+    return InputImage.fromBytes(
+      bytes: bytes.done().buffer.asUint8List(),
+      metadata: InputImageMetadata(
+        size: Size(image.width.toDouble(), image.height.toDouble()),
+        rotation: rotation,
+        format: format,
+        bytesPerRow: image.planes[0].bytesPerRow,
+      ),
+    );
+  }
+
+  void _retakePicture() {
+    setState(() => _photoBytes = null);
+    if (!kIsWeb && _isCameraInitialized) {
+      _startFaceDetection();
+    }
+  }
+
   Future<void> _getLocation() async {
     try {
-      // Cek apakah layanan lokasi aktif
+  
       bool enabled = await Geolocator.isLocationServiceEnabled();
       if (!enabled) {
         if (mounted) {
@@ -171,7 +284,6 @@ class _AbsenSubmitScreenState extends State<AbsenSubmitScreen> {
         return;
       }
 
-      // Cek & minta izin
       LocationPermission perm = await Geolocator.checkPermission();
       if (perm == LocationPermission.denied) {
         perm = await Geolocator.requestPermission();
@@ -193,7 +305,7 @@ class _AbsenSubmitScreenState extends State<AbsenSubmitScreen> {
 
       setState(() {
         _position = pos;
-        _locationTime = DateTime.now(); // simpan waktu saat lokasi diambil
+        _locationTime = DateTime.now(); 
       });
 
       if (mounted) {
@@ -218,8 +330,12 @@ class _AbsenSubmitScreenState extends State<AbsenSubmitScreen> {
   }
 
   // ================== Validasi Geofence ==================
-  /// Mengembalikan true jika posisi dalam radius yang diizinkan.
   Future<bool> _validateLocation() async {
+    if (kDebugMode) {
+      debugPrint('DEBUG] Bypass Geofence untuk testing lebih cepat');
+      return true; 
+    }
+
     final double distance = Geolocator.distanceBetween(
       _position!.latitude,
       _position!.longitude,
@@ -227,7 +343,6 @@ class _AbsenSubmitScreenState extends State<AbsenSubmitScreen> {
       _allowedLon,
     );
 
-    // Debug: lihat jarak aktual di console
     debugPrint(
       '🔍 Jarak dari titik absen: ${distance.toStringAsFixed(2)} m '
       '(batas: ${_allowedRadius.toStringAsFixed(0)} m)',
@@ -235,7 +350,6 @@ class _AbsenSubmitScreenState extends State<AbsenSubmitScreen> {
 
     if (distance <= _allowedRadius) return true;
 
-    // Tampilkan dialog peringatan
     if (mounted) {
       await showDialog(
         context: context,
@@ -292,7 +406,7 @@ class _AbsenSubmitScreenState extends State<AbsenSubmitScreen> {
       return;
     }
 
-    // 🔒 Validasi geofence — hentikan jika di luar area
+    // Validasi geofence 
     final bool locationValid = await _validateLocation();
     if (!locationValid) return;
 
@@ -307,7 +421,7 @@ class _AbsenSubmitScreenState extends State<AbsenSubmitScreen> {
         "latitude": _position!.latitude,
         "longitude": _position!.longitude,
         "waktu": DateFormat("yyyy-MM-dd HH:mm:ss").format(DateTime.now()),
-        "foto": base64Encode(_photoBytes!), // Simpan foto asli sebagai base64 string
+        "foto": base64Encode(_photoBytes!), 
       };
 
       await prefs.setString('absen_${widget.idKrsDetail}_${widget.pertemuan}', jsonEncode(dataToSave));
@@ -340,7 +454,7 @@ class _AbsenSubmitScreenState extends State<AbsenSubmitScreen> {
       if (mounted) setState(() => _isSubmitting = false);
     }
   }
-  // =============================================================
+
 
   Widget _buildCameraPlaceholder() {
     return Container(
@@ -405,13 +519,13 @@ class _AbsenSubmitScreenState extends State<AbsenSubmitScreen> {
               ),
               const SizedBox(height: 16),
 
-              // Live Camera (web & Android)
+              // Live Camera
               AspectRatio(
                 aspectRatio: 1,
                 child: Container(
                   width: double.infinity,
                   decoration: BoxDecoration(
-                    color: Colors.grey.shade200,
+                    color: Colors.black,
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: Stack(
@@ -421,8 +535,45 @@ class _AbsenSubmitScreenState extends State<AbsenSubmitScreen> {
                         borderRadius: BorderRadius.circular(12),
                         child: _photoBytes != null 
                             ? Image.memory(_photoBytes!, fit: BoxFit.cover)
-                            : _buildCameraPlaceholder(),
+                            : (kIsWeb 
+                                ? _buildCameraPlaceholder() 
+                                : (_isCameraInitialized 
+                                    ? CameraPreview(_cameraController!) 
+                                    : const Center(child: CircularProgressIndicator()))),
                       ),
+                      if (_photoBytes == null && !kIsWeb && _isCameraInitialized)
+                         Positioned(
+                           bottom: 16,
+                           left: 0,
+                           right: 0,
+                           child: Column(
+                             mainAxisSize: MainAxisSize.min,
+                             children: [
+                               if (kDebugMode)
+                                 ElevatedButton(
+                                   onPressed: () async {
+                                     _faceDetected = true;
+                                     await _cameraController!.stopImageStream();
+                                     final XFile picture = await _cameraController!.takePicture();
+                                     final bytes = await picture.readAsBytes();
+                                     if (mounted) setState(() => _photoBytes = bytes);
+                                   },
+                                   style: ElevatedButton.styleFrom(backgroundColor: Colors.blue),
+                                   child: const Text('Bypass Face (Debug)'),
+                                 ),
+                               const Center(
+                                 child: Text(
+                                   'Arahkan wajah Anda ke kamera...',
+                                   style: TextStyle(
+                                     color: Colors.white,
+                                     fontWeight: FontWeight.bold,
+                                     shadows: [Shadow(color: Colors.black, blurRadius: 4)],
+                                   ),
+                                 ),
+                               ),
+                             ],
+                           ),
+                         ),
                     ],
                   ),
                 ),
@@ -432,7 +583,7 @@ class _AbsenSubmitScreenState extends State<AbsenSubmitScreen> {
 
               Center(
                 child: OutlinedButton(
-                  onPressed: _photoBytes == null ? _takePicture : _retakePicture,
+                  onPressed: _photoBytes == null ? (kIsWeb ? _takePictureManual : null) : _retakePicture,
                   style: OutlinedButton.styleFrom(
                     padding: const EdgeInsets.symmetric(
                       horizontal: 32,
@@ -443,7 +594,7 @@ class _AbsenSubmitScreenState extends State<AbsenSubmitScreen> {
                     ),
                   ),
                   child: Text(
-                    _photoBytes == null ? 'Ambil Foto' : 'Foto Ulang',
+                    _photoBytes == null ? (kIsWeb ? 'Ambil Foto' : 'Mendeteksi Wajah...') : 'Foto Ulang',
                   ),
                 ),
               ),
@@ -715,7 +866,7 @@ class _AbsenSubmitScreenState extends State<AbsenSubmitScreen> {
             width: double.infinity,
             height: 50,
             child: ElevatedButton(
-              onPressed: () {}, // Already submitted
+              onPressed: () {}, 
               style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.white,
                 foregroundColor: Colors.green.shade700,
@@ -742,7 +893,7 @@ class _AbsenSubmitScreenState extends State<AbsenSubmitScreen> {
 
   @override
   Widget build(BuildContext context) {
-    // Determine background color based on status
+
     final bgColor = _existing != null
         ? const Color(0xFF4CAF50) // Green
         : const Color(0xFF95A5A6); // Gray
