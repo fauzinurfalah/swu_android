@@ -2,7 +2,6 @@ import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:quickalert/quickalert.dart';
-import 'package:iconsax/iconsax.dart';
 import '../api/api_service.dart';
 import 'login_screen.dart';
 
@@ -208,7 +207,7 @@ class _RegisterPagesScreen extends State<RegisterScreen> {
                                   controller: _nameController,
                                   decoration: _pillDec(
                                     label: "Nama",
-                                    icon: Iconsax.user,
+                                    icon: Icons.person_outline,
                                   ),
                                   validator: (v) => v!.isEmpty
                                       ? "Name tidak boleh kosong"
@@ -223,10 +222,10 @@ class _RegisterPagesScreen extends State<RegisterScreen> {
                                   onTap: _pilihTanggal,
                                   decoration: _pillDec(
                                     label: "Tanggal Lahir",
-                                    icon: Iconsax.calendar,
+                                    icon: Icons.calendar_today_outlined,
                                     suffixIcon: const Padding(
                                       padding: EdgeInsets.only(right: 8),
-                                      child: Icon(Iconsax.calendar),
+                                      child: Icon(Icons.calendar_today_outlined),
                                     ),
                                   ),
                                   validator: (v) => v!.isEmpty
@@ -240,7 +239,7 @@ class _RegisterPagesScreen extends State<RegisterScreen> {
                                   value: _jenisKelamin,
                                   decoration: _pillDec(
                                     label: "Jenis Kelamin",
-                                    icon: Iconsax.user_tag,
+                                    icon: Icons.badge_outlined,
                                   ),
                                   items: const [
                                     DropdownMenuItem(
@@ -263,7 +262,7 @@ class _RegisterPagesScreen extends State<RegisterScreen> {
                                   keyboardType: TextInputType.emailAddress,
                                   decoration: _pillDec(
                                     label: "Email",
-                                    icon: Iconsax.sms,
+                                    icon: Icons.email_outlined,
                                   ),
                                   validator: (v) => v!.isEmpty
                                       ? "Email tidak boleh kosong"
@@ -276,7 +275,7 @@ class _RegisterPagesScreen extends State<RegisterScreen> {
                                   controller: _alamat,
                                   decoration: _pillDec(
                                     label: "Alamat",
-                                    icon: Iconsax.location,
+                                    icon: Icons.location_on_outlined,
                                   ),
                                   validator: (v) => v!.isEmpty
                                       ? "alamat tidak boleh kosong"
@@ -289,7 +288,7 @@ class _RegisterPagesScreen extends State<RegisterScreen> {
                                   controller: _angkatan,
                                   decoration: _pillDec(
                                     label: "Angkatan",
-                                    icon: Iconsax.tag,
+                                    icon: Icons.local_offer_outlined,
                                   ),
                                   validator: (v) => v!.isEmpty
                                       ? "Angkatan tidak boleh kosong"
@@ -302,7 +301,7 @@ class _RegisterPagesScreen extends State<RegisterScreen> {
                                   controller: _id_tahun,
                                   decoration: _pillDec(
                                     label: "Tahun Masuk",
-                                    icon: Iconsax.calendar_2,
+                                    icon: Icons.date_range_outlined,
                                   ),
                                   validator: (v) => v!.isEmpty
                                       ? "Tahun Masuk tidak boleh kosong"
@@ -316,14 +315,14 @@ class _RegisterPagesScreen extends State<RegisterScreen> {
                                   obscureText: !_isPasswordVisible,
                                   decoration: _pillDec(
                                     label: "Password",
-                                    icon: Iconsax.lock,
+                                    icon: Icons.lock_outline,
                                     suffixIcon: IconButton(
                                       onPressed: () => setState(() =>
                                           _isPasswordVisible =
                                               !_isPasswordVisible),
                                       icon: Icon(_isPasswordVisible
-                                          ? Iconsax.eye_slash
-                                          : Iconsax.eye),
+                                          ? Icons.visibility_off_outlined
+                                          : Icons.visibility_outlined),
                                     ),
                                   ),
                                   validator: (v) => v!.isEmpty
@@ -338,14 +337,14 @@ class _RegisterPagesScreen extends State<RegisterScreen> {
                                   obscureText: !_isconfirmPasswordVisible,
                                   decoration: _pillDec(
                                     label: "Konfirmasi Password",
-                                    icon: Iconsax.lock,
+                                    icon: Icons.lock_outline,
                                     suffixIcon: IconButton(
                                       onPressed: () => setState(() =>
                                           _isconfirmPasswordVisible =
                                               !_isconfirmPasswordVisible),
                                       icon: Icon(_isconfirmPasswordVisible
-                                          ? Iconsax.eye_slash
-                                          : Iconsax.eye),
+                                          ? Icons.visibility_off_outlined
+                                          : Icons.visibility_outlined),
                                     ),
                                   ),
                                   validator: (v) =>

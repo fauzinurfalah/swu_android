@@ -8,6 +8,7 @@ import 'biodata.dart';
 import 'jadwal_screen.dart';
 import 'input_krs_screen.dart';
 import 'transkip.dart';
+import 'spp_screen.dart';
 import 'sp_screen.dart';
 import 'khs.dart';
 import 'eperpus_screen.dart';
@@ -224,6 +225,18 @@ class _HomeScreenState extends State<HomeScreen> {
                         );
                       },
                     ),
+                    _menuIconItem(
+                      Icons.payment_outlined,
+                      'Pembayaran SPP',
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => const SppScreen(),
+                          ),
+                        );
+                      },
+                    ),
                   ],
                 ),
               ),
@@ -421,6 +434,52 @@ class _HomeScreenState extends State<HomeScreen> {
                   assetPath,
                   color: const Color(0xFF7BA7E2),
                   fit: BoxFit.contain,
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            label,
+            textAlign: TextAlign.center,
+            style: const TextStyle(
+              fontSize: 12,
+              color: Colors.black87,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _menuIconItem(IconData iconData, String label, {VoidCallback? onTap}) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(22),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            height: 78,
+            width: 78,
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(22),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.06),
+                  blurRadius: 12,
+                  offset: const Offset(0, 4),
+                ),
+              ],
+            ),
+            child: Center(
+              child: Padding(
+                padding: const EdgeInsets.all(20.0),
+                child: Icon(
+                  iconData,
+                  color: const Color(0xFF7BA7E2),
+                  size: 38,
                 ),
               ),
             ),
