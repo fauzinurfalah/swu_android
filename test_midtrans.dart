@@ -2,7 +2,7 @@ import 'dart:convert';
 import 'dart:io';
 
 void main() async {
-  final _midtransServerKey = "Mid-server-FZ8oEUkPIErJZDediEts1jQN";
+  final _midtransServerKey = "Mid-server-xxxxxxxx"; // Replace with your actual server key
   final authKey = base64Encode(utf8.encode("$_midtransServerKey:"));
 
   final requestUrl = Uri.parse('https://app.sandbox.midtrans.com/snap/v1/transactions');
