@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'dart:convert';
 import 'package:dio/dio.dart';
-import 'package:url_launcher/url_launcher.dart';class SppScreen extends StatefulWidget {
+import 'package:url_launcher/url_launcher.dart';
+
+class SppScreen extends StatefulWidget {
   const SppScreen({Key? key}) : super(key: key);
 
   @override
@@ -9,7 +11,7 @@ import 'package:url_launcher/url_launcher.dart';class SppScreen extends Stateful
 }
 
 class _SppScreenState extends State<SppScreen> {
-  final String _midtransServerKey = "mid-server-XXXXXXXXXXXXXXXXXXXXXXXX"; // Ganti dengan Server Key Midtrans Anda
+  final String _midtransServerKey = "Mid-server-FZ8oEUkPIErJZDediEts1jQN";
   bool _isLoading = false;
 
   List<Map<String, dynamic>> sppData = [
@@ -106,10 +108,22 @@ class _SppScreenState extends State<SppScreen> {
         });
       }
     } catch (e) {
+      String errorMsg = "Error: $e";
+      if (e is DioException) {
+        final status = e.response?.statusCode;
+        final body = e.response?.data;
+        errorMsg = "Status: $status\nResponse: $body";
+        print("=== MIDTRANS ERROR ===");
+        print("Status Code: $status");
+        print("Response Body: $body");
+        print("Request Headers: ${e.requestOptions.headers}");
+        print("=====================");
+      }
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text("Gagal membuka payment gateway: $e"),
+          content: Text(errorMsg),
           backgroundColor: Colors.red,
+          duration: const Duration(seconds: 10),
         ),
       );
     } finally {
